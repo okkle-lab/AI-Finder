@@ -1,0 +1,43 @@
+<section class="hero">
+  <h1>What do you need AI to do?</h1>
+  <p class="hero-sub">Describe it in plain English. We'll suggest a few honest options — and tell you the catch.</p>
+
+  <%= form_with url: search_path, method: :get, class: "search-form" do |f| %>
+    <%= f.search_field :q,
+          placeholder: "e.g. transcribe my interviews without my data being kept",
+          autofocus: true,
+          autocomplete: "off",
+          class: "search-input" %>
+    <%= f.submit "Find tools", class: "search-button" %>
+  <% end %>
+</section>
+
+<section class="browse">
+  <h2 class="browse-title">…or browse by what you want to do</h2>
+  <div class="tile-grid">
+    <% @categories.each do |category| %>
+      <%= link_to search_path(category: category.slug), class: "tile" do %>
+        <span class="tile-name"><%= category.display_name %></span>
+        <span class="tile-sub"><%= category.subtitle %></span>
+      <% end %>
+    <% end %>
+  </div>
+</section>
+
+<% if @recent_posts.any? %>
+  <section class="blog-preview">
+    <div class="section-head">
+      <h2 class="browse-title">Latest in AI</h2>
+      <%= link_to "See all →", posts_path, class: "section-all" %>
+    </div>
+    <div class="post-list">
+      <% @recent_posts.each do |post| %>
+        <article class="post-card">
+          <% if post.published_at %><p class="post-date"><%= post.published_at.strftime("%-d %b %Y") %></p><% end %>
+          <h3 class="post-title"><%= link_to post.title, post_path(post) %></h3>
+          <% if post.excerpt.present? %><p class="post-excerpt"><%= post.excerpt %></p><% end %>
+        </article>
+      <% end %>
+    </div>
+  </section>
+<% end %>

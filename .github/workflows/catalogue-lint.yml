@@ -1,0 +1,35 @@
+name: Catalogue lint
+
+# Validates the hand-edited seed data (catalogue CSV, model variants CSV, and
+# review markdown files): headers, allowed values, score ranges, and
+# cross-references. Runs on PRs that touch it AND on direct pushes to main —
+# the latter so edits made straight on main (no PR) still get flagged with a
+# red X on the commit, even though nothing blocks them without a PR.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "db/seeds/**"
+      - "script/validate_catalogue.rb"
+  pull_request:
+    paths:
+      - "db/seeds/**"
+      - "script/validate_catalogue.rb"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Lint catalogue data
+        run: ruby script/validate_catalogue.rb

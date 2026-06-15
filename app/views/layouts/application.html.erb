@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for?(:title) ? yield(:title) : "AI Finder — Google for AI" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <a href="/" class="brand">AI&nbsp;Finder</a>
+      <span class="brand-tag">tell us what you need, in plain English</span>
+    </header>
+    <main class="container">
+      <% if flash[:alert] %><p class="flash flash-alert"><%= flash[:alert] %></p><% end %>
+      <% if flash[:notice] %><p class="flash flash-notice"><%= flash[:notice] %></p><% end %>
+      <%= yield %>
+    </main>
+    <footer class="site-footer">
+      A small, honest catalogue. Prices and privacy facts change — always double-check on the tool's own site.
+      <span class="site-version">AI Finder v<%= AiFinder::VERSION %></span>
+    </footer>
+  </body>
+</html>
