@@ -1,6 +1,6 @@
 # AI Finder
 
-**A "Google for AI" for individuals.** Type what you need in plain English, get 4–5 honest, human-translated tool recommendations — and the catch with each one.
+**A "Search Engine for AI" for individuals.** Type what you need in plain English, get 4–5 honest, human-translated tool recommendations — and the catch with each one.
 
 > Status: v1 prototype. Runs locally; deployment deferred. Search works today via a keyword parser, with an LLM parser that activates automatically when an Anthropic API key + credit are present.
 
