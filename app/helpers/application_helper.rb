@@ -12,6 +12,13 @@ module ApplicationHelper
     score_number(value) || content_tag(:span, "—", class: "score-none", title: "Not yet rated")
   end
 
+  # A visible 1-10 score coloured by the same red→green scale.
+  def colored_score(value, css_class: nil)
+    return score_or_dash(value) if value.nil?
+
+    content_tag(:span, score_number(value), class: css_class, style: "color: #{score_color(value)}")
+  end
+
   # Colour a 1-10 score on a red→green scale: 1 is red, 10 is green.
   def score_color(value)
     return nil if value.nil?
