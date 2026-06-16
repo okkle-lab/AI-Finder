@@ -39,7 +39,8 @@ module ApplicationHelper
     "hsl(#{hue}, 72%, 42%)"
   end
 
-  # Very soft page wash using the same session gradient as the header.
+  # Session gradient custom properties for the header brand, buttons and
+  # search glow. The page background itself stays plain white.
   def page_gradient_style(gradient = nil)
     [
       "--session-gradient: #{gradient_value(gradient, alpha: 1.0)}",
@@ -47,8 +48,7 @@ module ApplicationHelper
       "--session-shadow: #{gradient_shadow_color(gradient, alpha: 0.2)}",
       "--hover-shadow-a: #{hover_shadow_stop(gradient, index: 0, alpha: 0.04)}",
       "--hover-shadow-b: #{hover_shadow_stop(gradient, index: 1, alpha: 0.036)}",
-      "--hover-shadow-c: #{hover_shadow_stop(gradient, index: 2, alpha: 0.032)}",
-      "background-image: #{gradient_value(gradient, alpha: 0.05)}"
+      "--hover-shadow-c: #{hover_shadow_stop(gradient, index: 2, alpha: 0.032)}"
     ].join("; ") + ";"
   end
 
