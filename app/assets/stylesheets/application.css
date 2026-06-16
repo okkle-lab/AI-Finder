@@ -95,17 +95,16 @@ a:hover { text-decoration: underline; }
   padding: 1rem; border: 1px solid var(--line); border-radius: 12px;
   background: #fff; color: var(--ink);
   box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .tile:hover {
   text-decoration: none; background: #fff;
   border-color: rgba(29, 79, 143, 0.18);
   box-shadow:
-    -4px 0 14px rgba(245, 106, 78, 0.045),
-    4px 0 14px rgba(246, 60, 101, 0.04),
-    0 0 16px rgba(226, 92, 137, 0.035),
+    -8px 0 28px var(--hover-shadow-a),
+    8px 0 28px var(--hover-shadow-b),
+    0 0 34px var(--hover-shadow-c),
     0 3px 8px rgba(26, 26, 46, 0.035);
-  transform: translateY(-1px);
 }
 .tile-name { font-weight: 700; text-transform: capitalize; }
 .tile-sub { color: var(--muted); font-size: 0.85rem; }
@@ -157,16 +156,15 @@ a:hover { text-decoration: underline; }
   display: flex; flex-direction: column;
   background: var(--card); border: 1px solid var(--line);
   border-radius: 14px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .card:hover {
   border-color: rgba(29, 79, 143, 0.18);
   box-shadow:
-    -4px 0 14px rgba(245, 106, 78, 0.045),
-    4px 0 14px rgba(246, 60, 101, 0.04),
-    0 0 16px rgba(226, 92, 137, 0.035),
+    -8px 0 28px var(--hover-shadow-a),
+    8px 0 28px var(--hover-shadow-b),
+    0 0 34px var(--hover-shadow-c),
     0 3px 8px rgba(26, 26, 46, 0.035);
-  transform: translateY(-1px);
 }
 .card-head { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
 .card-name { margin: 0; font-size: 1.3rem; }
