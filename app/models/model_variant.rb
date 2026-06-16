@@ -13,7 +13,7 @@ class ModelVariant < ApplicationRecord
 
   # This model's gated verdict, using the parent tool's ease & privacy.
   def verdict
-    verdict_with(ease: tool.ease_score, privacy: tool.privacy_score)
+    verdict_with(product_scores: tool.product_overall_scores)
   end
 
   # "$3 in / $15 out per 1M tokens" — mirrors Tool#price_summary.

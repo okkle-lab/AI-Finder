@@ -20,10 +20,11 @@ class ComparisonsController < ApplicationController
     @ids_param = @tools.map(&:id).join(",")
     @room      = @tools.size < MAX_TOOLS
 
-    # `from` (the prior search results) scopes which tools can be added, so a
-    # comparison started from a search stays within those recommendations.
-    @from    = params[:from].to_s
-    from_ids = @from.split(",").map(&:to_i).reject(&:zero?)
+    # Search context scopes which tools can be added, so a comparison started
+    # from a search stays within those recommendations.
+    @search_context = SearchContext.from_params(params)
+    @from = @search_context.ids_param
+    from_ids = @search_context.result_ids
 
     if @room
       scope = Tool.visible.where.not(id: @tools.map(&:id))

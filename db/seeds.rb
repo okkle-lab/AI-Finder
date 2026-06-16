@@ -27,6 +27,14 @@ def yes?(value)
   value.to_s.strip.downcase.start_with?("y")
 end
 
+def score_attributes_from(row, fields, model_class)
+  columns = model_class.column_names
+  fields.each_with_object({}) do |field, attrs|
+    key = field.to_s
+    attrs[field] = row[key].presence if row.headers.include?(key) && columns.include?(key)
+  end
+end
+
 VALID_RETENTION = Tool.data_retentions.keys.freeze # %w[none optional yes unclear]
 
 csv_path = Rails.root.join("db/seeds/ai_tool_catalogue_text_models.csv")
@@ -59,14 +67,7 @@ CSV.foreach(csv_path, headers: true) do |row|
     price_label:              row["price_label"].presence,
     ease_label:               row["ease_label"].presence,
     why_this_one:             row["why_this_one"].presence,
-    ease_score:               row["ease_score"].presence,
-    privacy_score:            row["privacy_score"].presence,
-    score_text_generation:    row["score_text_generation"].presence,
-    score_email_writing:      row["score_email_writing"].presence,
-    score_logic:              row["score_logic"].presence,
-    score_coding:             row["score_coding"].presence,
-    score_image_generation:   row["score_image_generation"].presence,
-    score_accuracy:           row["score_accuracy"].presence
+    **score_attributes_from(row, Rubric::SCORE_FIELDS, Tool)
   )
   tool.save!
 
@@ -108,12 +109,7 @@ if File.exist?(variants_path)
       best_for:         row["best_for"].presence,
       last_verified:    row["last_verified"].presence,
       position:         row["position"].presence || 0,
-      score_text_generation:  row["score_text_generation"].presence,
-      score_email_writing:    row["score_email_writing"].presence,
-      score_logic:            row["score_logic"].presence,
-      score_coding:           row["score_coding"].presence,
-      score_image_generation: row["score_image_generation"].presence,
-      score_accuracy:         row["score_accuracy"].presence
+      **score_attributes_from(row, Rubric::SCORE_FIELDS, ModelVariant)
     )
     variant_count += 1
   end

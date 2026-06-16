@@ -18,7 +18,7 @@ class ParsedNeed
   }.freeze
 
   FREE_PHRASES    = ["free", "for free", "budget", "cheap", "cheapest", "without paying", "no cost", "don't want to pay", "do not want to pay", "afford", "affordable"].freeze
-  PRIVATE_PHRASES = ["private", "privacy", "confidential", "sensitive", "secure", "don't keep", "doesn't keep", "do not keep", "not keep", "not kept", "without my data", "data being kept", "data isn't kept", "no data retention", "not store", "doesn't store", "won't store"].freeze
+  PRIVATE_PHRASES = ["private", "privacy", "confidential", "sensitive", "secure", "don't keep", "doesn't keep", "does not keep", "do not keep", "not keep", "not kept", "without my data", "data being kept", "data isn't kept", "no data retention", "not store", "doesn't store", "does not store", "won't store"].freeze
   LOCAL_PHRASES   = ["local", "locally", "offline", "on my computer", "on my machine", "on my laptop", "my own machine", "on-device", "on device", "self-host", "self host", "self-hosted", "without internet"].freeze
 
   STOPWORDS = %w[the a an and or to of for my me i want need without with that this it is are be can my your our without app tool tools ai help].freeze
@@ -75,9 +75,33 @@ class ParsedNeed
       must_run_locally:   LOCAL_PHRASES.any?   { |p| q.include?(p) },
       categories:         cats,
       keywords:           tokenize(text),
-      priority_dimension: cats.filter_map { |slug| CATEGORY_DIMENSION[slug] }.first,
+      priority_dimension: infer_priority_dimension(q, categories: cats, words: words),
       source:             "keyword"
     )
+  end
+
+  def self.infer_priority_dimension(text, categories: [], words: nil)
+    q = text.to_s.downcase
+    words ||= q.scan(/[a-z][a-z'-]*/)
+    scores = Hash.new(0)
+
+    Rubric::DIMENSIONS.each do |dimension, config|
+      Array(config[:intent_phrases]).each do |phrase|
+        scores[dimension] += 3 if q.include?(phrase)
+      end
+
+      Array(config[:intent_words]).each do |word|
+        scores[dimension] += 1 if words.include?(word)
+      end
+    end
+
+    categories.each do |slug|
+      dimension = CATEGORY_DIMENSION[slug]
+      scores[dimension] += 1 if dimension
+    end
+
+    winner, score = scores.max_by { |_dimension, value| value }
+    score.to_i.positive? ? winner : nil
   end
 
   def self.tokenize(text)
