@@ -1,20 +1,11 @@
-# Shared output-quality scoring for Tool (its "one model") and ModelVariant
-# (a specific model). Both carry the same five sub-score columns.
+# Shared score math for Tool (its "one model") and ModelVariant (a specific
+# model). Rubric metadata lives in Rubric; this concern only applies it.
 module Scoreable
   extend ActiveSupport::Concern
 
-  # Label => column, in display order.
-  OUTPUT_FIELDS = {
-    "Text generation"  => :score_text_generation,
-    "Email writing"    => :score_email_writing,
-    "Logic"            => :score_logic,
-    "Coding"           => :score_coding,
-    "Image generation" => :score_image_generation
-  }.freeze
-
   # Average of whichever output sub-scores are filled (nil if none yet).
   def output_quality
-    vals = OUTPUT_FIELDS.values.filter_map { |field| public_send(field) }
+    vals = Rubric::OUTPUT_FIELDS.values.filter_map { |field| public_send(field) }
     vals.any? ? vals.sum.to_f / vals.size : nil
   end
 
@@ -22,14 +13,17 @@ module Scoreable
   # capped by accuracy (a low accuracy score caps everything). Requires this
   # record's own output quality or accuracy — ease/privacy alone don't make a
   # verdict. nil = not yet rated.
-  def verdict_with(ease:, privacy:)
-    return nil if output_quality.nil? && score_accuracy.nil?
+  def verdict_with(product_scores: nil, ease: nil, privacy: nil)
+    gate_scores = Rubric::GATE_FIELDS.filter_map { |field| public_send(field) if respond_to?(field) }
+    return nil if output_quality.nil? && gate_scores.empty?
 
-    parts = [output_quality, ease, privacy].compact
+    product_scores ||= [ease, privacy]
+    parts = [output_quality, *product_scores].compact
     base = parts.empty? ? nil : parts.sum.to_f / parts.size
 
-    if score_accuracy
-      base ? [base, score_accuracy.to_f].min : score_accuracy.to_f
+    if gate_scores.any?
+      gate = gate_scores.min.to_f
+      base ? [base, gate].min : gate
     else
       base
     end

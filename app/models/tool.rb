@@ -28,18 +28,9 @@ class Tool < ApplicationRecord
   RANK_BASELINE = 5.0
 
   # Intent dimension (chosen by the parser from the user's request) => the
-  # score column it ranks on. The output sub-scores and accuracy live on both
-  # the tool and its variants; ease & privacy are tool-only.
-  PRIORITY_DIMENSIONS = {
-    "text_generation"  => :score_text_generation,
-    "email_writing"    => :score_email_writing,
-    "logic"            => :score_logic,
-    "coding"           => :score_coding,
-    "image_generation" => :score_image_generation,
-    "accuracy"         => :score_accuracy,
-    "ease_of_use"      => :ease_score,
-    "privacy"          => :privacy_score
-  }.freeze
+  # score column it ranks on. Kept for callers, derived from the rubric map so
+  # future score dimensions do not need separate ranking wiring.
+  PRIORITY_DIMENSIONS = Rubric::PRIORITY_DIMENSIONS
 
   # Headline verdict (1-10) for the scorecard + ranking: the best of this
   # tool's per-model verdicts. For a tool with no model lineup, score the
@@ -54,7 +45,11 @@ class Tool < ApplicationRecord
   # Verdict from the tool's own scores — used when there are no scored
   # variants (single-model products). Same gated formula as a model verdict.
   def self_verdict
-    verdict_with(ease: ease_score, privacy: privacy_score)
+    verdict_with(product_scores: product_overall_scores)
+  end
+
+  def product_overall_scores
+    Rubric::PRODUCT_FIELDS.filter_map { |field| public_send(field) if respond_to?(field) }
   end
 
   # Best value for a score column across this tool's variants, falling back to

@@ -46,7 +46,7 @@ class NeedParser
   # Cache the parsed *filters* (not the picked tools — those stay random).
   # In dev the cache is usually a null store, so this just no-ops.
   def cached_or_parse
-    key = "need_parser/v1/#{Digest::SHA1.hexdigest(@query.downcase)}"
+    key = "need_parser/v2/#{Digest::SHA1.hexdigest(@query.downcase)}"
     Rails.cache.fetch(key, expires_in: 1.day) { parse_with_llm }
   end
 
@@ -112,16 +112,16 @@ class NeedParser
 
       Also pick the SINGLE quality that matters most for this request, as
       priority_dimension — this decides which score we rank results by:
-        - writing prose, articles, blog posts, stories -> text_generation
-        - writing or replying to emails -> email_writing
-        - reasoning, maths, analysis, problem-solving -> logic
-        - writing, reviewing or debugging code -> coding
-        - creating images or art -> image_generation
-        - factual accuracy, citations, research, trustworthiness -> accuracy
-        - being beginner-friendly / simple to use -> ease_of_use
-        - privacy or data safety being the main concern -> privacy
+      #{priority_dimension_prompt}
       Omit priority_dimension if nothing clearly dominates.
     PROMPT
+  end
+
+  def priority_dimension_prompt
+    Rubric::DIMENSIONS.map do |dimension, config|
+      examples = Array(config[:intent_phrases]).first(3).join(" / ")
+      "  - #{config[:label]} (#{examples}) -> #{dimension}"
+    end.join("\n")
   end
 
   def tool_schema

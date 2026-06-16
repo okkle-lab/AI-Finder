@@ -15,6 +15,7 @@ class SearchController < ApplicationController
 
     @result = ToolMatcher.call(@need)
     @tools  = @result.tools
+    @search_context = SearchContext.from_results(@tools, @need)
 
     Event.record(
       event_type:     "search",

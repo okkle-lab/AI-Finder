@@ -40,6 +40,16 @@ class ToolRankingTest < ActiveSupport::TestCase
     refute coding_tool.scored_on?(nil)
   end
 
+  test "priority dimensions are derived from the rubric metadata" do
+    assert_equal Rubric::PRIORITY_DIMENSIONS, Tool::PRIORITY_DIMENSIONS
+  end
+
+  test "product overall scores are derived from product rubric fields" do
+    tool = Tool.new(name: "Product Scores", ease_score: 7, privacy_score: 9)
+
+    assert_equal [7, 9], tool.product_overall_scores
+  end
+
   test "best_score reads tool-only columns like ease_of_use" do
     tool = Tool.new(name: "Easy", ease_score: 7)
     assert_equal 7, tool.best_score(:ease_score)
