@@ -45,6 +45,9 @@ module ApplicationHelper
       "--session-gradient: #{gradient_value(gradient, alpha: 1.0)}",
       "--button-gradient: #{button_gradient_value(gradient)}",
       "--session-shadow: #{gradient_shadow_color(gradient, alpha: 0.2)}",
+      "--hover-shadow-a: #{hover_shadow_stop(gradient, index: 0, alpha: 0.04)}",
+      "--hover-shadow-b: #{hover_shadow_stop(gradient, index: 1, alpha: 0.036)}",
+      "--hover-shadow-c: #{hover_shadow_stop(gradient, index: 2, alpha: 0.032)}",
       "background-image: #{gradient_value(gradient, alpha: 0.05)}"
     ].join("; ") + ";"
   end
@@ -73,6 +76,22 @@ module ApplicationHelper
     gradient ||= {}
     colors = Array(gradient["colors"]).presence || SESSION_GRADIENTS.first
     rgba(colors[colors.length / 2], alpha)
+  end
+
+  def gradient_shadow_stop(gradient = nil, index:, alpha:)
+    gradient ||= {}
+    colors = Array(gradient["colors"]).presence || SESSION_GRADIENTS.first
+    rgba(colors.fetch(index, colors.last), alpha)
+  end
+
+  def hover_shadow_stop(gradient = nil, index:, alpha:)
+    colors = unused_gradient_colors(gradient)
+    rgba(colors.fetch(index, colors.last), alpha)
+  end
+
+  def unused_gradient_colors(gradient = nil)
+    active = Array(gradient&.dig("colors"))
+    SESSION_GRADIENTS.find { |palette| palette != active } || SESSION_GRADIENTS.last
   end
 
   def rgba(hex, alpha)
