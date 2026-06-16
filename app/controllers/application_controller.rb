@@ -6,11 +6,9 @@ class ApplicationController < ActionController::Base
   def set_header_gradient
     return if valid_header_gradient?
 
-    colors = helpers.session_gradient_palettes.sample
-
     session[:header_gradient] = {
-      "angle" => rand(95..145),
-      "colors" => colors
+      "angle" => 120,
+      "colors" => helpers.session_gradient_palettes.first
     }
   end
 
