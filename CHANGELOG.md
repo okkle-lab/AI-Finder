@@ -7,7 +7,27 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- Added a double-clickable macOS launcher (`Launch AI Finder.command`) backed by
+  `bin/launch`, which checks dependencies, prepares the database, starts the
+  Rails server, and opens the app in a browser.
+- Search ranking now uses the user's inferred intent: the parser can identify a
+  priority score dimension (for example coding, writing, accuracy, privacy, or
+  ease of use), and results are ranked by that relevant score plus the tool's
+  overall score. Tools actually scored on the relevant dimension are ranked
+  ahead of tools that have not been evaluated there.
+- Tool detail pages now explain search-driven recommendations with a
+  "Why you're seeing this" score strip when the user arrives from an intent
+  search, showing the matched score alongside the overall score.
+
 ### Changed
+- Enlarged the review-page "Our verdict" card and colour-coded verdict numbers
+  on a red-to-green 1-10 scale.
+- Simplified the product-page scorecard: direct visits show the overall score
+  only, while intent-search visits show the relevant matched score plus the
+  overall score when that matched score exists.
+- Back links now climb the product hierarchy predictably — review page to tool
+  page, tool page to home — instead of relying on browser history.
 - Renamed the per-model scorecard column "Verdict" → "Overall" to avoid
   clashing with the headline "Our verdict" (which is the best model's overall).
 - Reframed reviews as a per-tool page (`/tools/:id/review`): the full score
@@ -123,7 +143,7 @@ recommendations, built on Rails + PostgreSQL.
   keyword parser and still works.
 - Catalogue figures are reasonable approximations pending human curation.
 
-[Unreleased]: https://github.com/mototaxuk-lab/ai-finder/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/mototaxuk-lab/ai-finder/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/mototaxuk-lab/ai-finder/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/mototaxuk-lab/ai-finder/releases/tag/v0.1.0
+[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/okkle-lab/AI-Finder/releases/tag/v0.1.0
