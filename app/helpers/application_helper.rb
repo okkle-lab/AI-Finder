@@ -1,9 +1,8 @@
 module ApplicationHelper
+  # Single brand gradient: warm orange -> pink. Used everywhere a gradient
+  # appears (brand wordmark, buttons, search glow) — no longer randomised.
   SESSION_GRADIENTS = [
-    # Smooth pink -> light blue.
-    %w[#f63c65 #e4677e #d3659c #a3bde5],
-    # Smooth light blue -> purple.
-    %w[#a3bde5 #53aaf6 #8d8fe0 #a86dd1]
+    %w[#f5a623 #ec4565]
   ].freeze
 
   def session_gradient_palettes
