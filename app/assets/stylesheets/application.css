@@ -246,17 +246,6 @@ a:hover { text-decoration: underline; }
 }
 .compare-add-btn:hover { filter: brightness(1.05); }
 
-/* ---- verdict badge (result card) ---- */
-.verdict-badge {
-  margin-left: auto; align-self: center;
-  font-weight: 800; font-size: 0.95rem; color: #fff;
-  background: var(--accent); border-radius: 999px; padding: 0.15rem 0.6rem;
-}
-.verdict-badge-max { font-weight: 600; font-size: 0.75rem; opacity: 0.85; }
-.verdict-badge-none {
-  background: #f3f4f6; color: var(--muted); font-weight: 600; font-size: 0.78rem;
-}
-
 /* ---- scorecard (detail page) ---- */
 .scorecard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .verdict-headline { font-size: 1.1rem; color: var(--muted); white-space: nowrap; }

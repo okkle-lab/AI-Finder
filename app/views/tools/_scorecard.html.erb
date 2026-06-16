@@ -9,13 +9,14 @@
     dimensions the variants actually carry. %>
 <% pd_variant_field = (pd_field if pd_score && ModelVariant.column_names.include?(pd_field.to_s)) %>
 <% variants = tool.model_variants.ordered %>
+<% product_matched_score = !detailed && !variants.any? && pd_score && !%i[ease_score privacy_score].include?(pd_field) %>
 <% sub = [["Text", :score_text_generation], ["Email", :score_email_writing], ["Logic", :score_logic], ["Coding", :score_coding], ["Image", :score_image_generation]] %>
 
 <section class="specs-block scorecard<%= " scorecard-prominent" if detailed %>">
   <div class="scorecard-head">
     <h2 class="specs-title">Our verdict</h2>
     <% if (v = tool.overall_verdict) %>
-      <span class="verdict-headline"><span class="verdict-num" style="color: <%= score_color(v) %>"><%= score_number(v) %></span>/10</span>
+      <span class="verdict-headline"><%= colored_score(v, css_class: "verdict-num") %>/10</span>
     <% else %>
       <span class="verdict-headline verdict-none">Not yet rated</span>
     <% end %>
@@ -29,29 +30,33 @@
       <span class="why-shown-text">Matched on <strong><%= pd_label %></strong></span>
       <span class="why-shown-stats">
         <span class="why-shown-stat">
-          <span class="why-shown-num" style="color: <%= score_color(pd_score) %>"><%= score_number(pd_score) %></span>
+          <%= colored_score(pd_score, css_class: "why-shown-num") %>
           <span class="why-shown-cap"><%= pd_label %></span>
         </span>
         <span class="why-shown-stat">
-          <span class="why-shown-num" style="color: <%= score_color(tool.overall_verdict) %>"><%= score_or_dash(tool.overall_verdict) %></span>
+          <%= colored_score(tool.overall_verdict, css_class: "why-shown-num") %>
           <span class="why-shown-cap">overall</span>
         </span>
       </span>
     </div>
   <% end %>
 
-  <dl class="criteria-grid">
-    <% if detailed && !variants.any? %>
-      <% Scoreable::OUTPUT_FIELDS.each do |label, field| %>
-        <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= score_or_dash(tool.public_send(field)) %></dd></div>
+  <% if detailed || product_matched_score %>
+    <dl class="criteria-grid">
+      <% if detailed && !variants.any? %>
+        <% Scoreable::OUTPUT_FIELDS.each do |label, field| %>
+          <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= colored_score(tool.public_send(field)) %></dd></div>
+        <% end %>
+      <% elsif product_matched_score %>
+        <%# Product page from an intent search: surface just the matched score. %>
+        <div class="criterion"><dt class="criterion-cap"><%= pd_label %></dt><dd><%= colored_score(pd_score) %></dd></div>
       <% end %>
-    <% elsif !variants.any? && pd_score && !%i[ease_score privacy_score].include?(pd_field) %>
-      <%# Product page from an intent search: surface just the matched score. %>
-      <div class="criterion"><dt class="criterion-cap"><%= pd_label %></dt><dd><%= score_number(pd_score) %></dd></div>
-    <% end %>
-    <div class="criterion"><dt>Ease of use</dt><dd><%= score_or_dash(tool.ease_score) %></dd></div>
-    <div class="criterion"><dt>Privacy &amp; data safety</dt><dd><%= score_or_dash(tool.privacy_score) %></dd></div>
-  </dl>
+      <% if detailed %>
+        <div class="criterion"><dt>Ease of use</dt><dd><%= colored_score(tool.ease_score) %></dd></div>
+        <div class="criterion"><dt>Privacy &amp; data safety</dt><dd><%= colored_score(tool.privacy_score) %></dd></div>
+      <% end %>
+    </dl>
+  <% end %>
 
   <% if variants.any? %>
     <h3 class="scorecard-sub">
@@ -76,13 +81,13 @@
             <tr>
               <td class="models-name"><%= variant.name %></td>
               <% if detailed %>
-                <% sub.each { |_, field| %><td><%= score_or_dash(variant.public_send(field)) %></td><% } %>
-                <td><%= score_or_dash(variant.output_quality) %></td>
-                <td><%= score_or_dash(variant.score_accuracy) %></td>
+                <% sub.each { |_, field| %><td><%= colored_score(variant.public_send(field)) %></td><% } %>
+                <td><%= colored_score(variant.output_quality) %></td>
+                <td><%= colored_score(variant.score_accuracy) %></td>
               <% elsif pd_variant_field %>
-                <td><%= score_or_dash(variant.public_send(pd_variant_field)) %></td>
+                <td><%= colored_score(variant.public_send(pd_variant_field)) %></td>
               <% end %>
-              <td><strong><%= score_or_dash(variant.verdict) %></strong></td>
+              <td><strong><%= colored_score(variant.verdict) %></strong></td>
             </tr>
           <% end %>
         </tbody>
