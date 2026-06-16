@@ -41,17 +41,13 @@
   <% end %>
 
   <dl class="criteria-grid">
-    <% unless variants.any? %>
-      <% if detailed %>
-        <% Scoreable::OUTPUT_FIELDS.each do |label, field| %>
-          <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= score_or_dash(tool.public_send(field)) %></dd></div>
-        <% end %>
-        <div class="criterion"><dt>Output quality</dt><dd><%= score_or_dash(tool.output_quality) %></dd></div>
-        <div class="criterion"><dt>Accuracy &amp; trustworthiness</dt><dd><%= score_or_dash(tool.score_accuracy) %></dd></div>
-      <% elsif pd_score && !%i[ease_score privacy_score].include?(pd_field) %>
-        <%# Product page from an intent search: surface just the matched score. %>
-        <div class="criterion"><dt class="criterion-cap"><%= pd_label %></dt><dd><%= score_number(pd_score) %></dd></div>
+    <% if detailed && !variants.any? %>
+      <% Scoreable::OUTPUT_FIELDS.each do |label, field| %>
+        <div class="criterion criterion-sub"><dt><%= label %></dt><dd><%= score_or_dash(tool.public_send(field)) %></dd></div>
       <% end %>
+    <% elsif !variants.any? && pd_score && !%i[ease_score privacy_score].include?(pd_field) %>
+      <%# Product page from an intent search: surface just the matched score. %>
+      <div class="criterion"><dt class="criterion-cap"><%= pd_label %></dt><dd><%= score_number(pd_score) %></dd></div>
     <% end %>
     <div class="criterion"><dt>Ease of use</dt><dd><%= score_or_dash(tool.ease_score) %></dd></div>
     <div class="criterion"><dt>Privacy &amp; data safety</dt><dd><%= score_or_dash(tool.privacy_score) %></dd></div>
@@ -59,7 +55,7 @@
 
   <% if variants.any? %>
     <h3 class="scorecard-sub">
-      <% if detailed %>Scores by model<% elsif pd_variant_field %><%= pd_label.capitalize %> and overall, by model<% else %>Overall, by model<% end %>
+      <% if detailed %>Scores by model<% elsif pd_variant_field %><%= pd_label.capitalize %> &amp; score, by model<% else %>Score by model<% end %>
     </h3>
     <div class="scores-scroll">
       <table class="models-table scores-table">
@@ -68,11 +64,11 @@
             <th>Model</th>
             <% if detailed %>
               <% sub.each { |label, _| %><th><%= label %></th><% } %>
-              <th>Output quality</th><th>Accuracy</th>
-            <% elsif pd_variant_field %>
-              <th><%= pd_label.capitalize %></th>
+              <th>Output quality</th><th>Accuracy</th><th>Overall</th>
+            <% else %>
+              <% if pd_variant_field %><th><%= pd_label.capitalize %></th><% end %>
+              <th>Score</th>
             <% end %>
-            <th>Overall</th>
           </tr>
         </thead>
         <tbody>
