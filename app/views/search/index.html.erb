@@ -1,12 +1,10 @@
+<% content_for :title, "#{@results_title} — AI Finder" %>
+
 <section class="results-head">
   <%= link_to "← new search", root_path, class: "back-link" %>
 
   <div class="results-toolbar">
-    <% if @query.present? %>
-      <h1 class="results-title">Tools for “<%= @query %>”</h1>
-    <% else %>
-      <h1 class="results-title">Tools to <%= @need.categories.first&.tr("-", " ") %></h1>
-    <% end %>
+    <h1 class="results-title"><%= @results_title %></h1>
 
     <%= form_with url: search_path, method: :get, class: "sort-form" do |f| %>
       <% if @query.present? %>
