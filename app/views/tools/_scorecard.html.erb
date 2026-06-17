@@ -48,98 +48,61 @@
     </dl>
   <% end %>
 
-  <% if variants.any? %>
-    <h3 class="scorecard-sub">
-      <% if detailed %>Scores by model<% elsif pd_variant_fields.any? %><%= pd_label.capitalize %> &amp; score, by model<% else %>Score by model<% end %>
-    </h3>
-    <% if detailed %>
-      <% grid_template = "1rem minmax(12rem, 1.45fr) repeat(#{variants.size}, minmax(0, 1fr))" %>
-      <div class="score-category-list">
-        <div class="score-category-summary score-category-header" style="grid-template-columns: <%= grid_template %>">
-          <span>Criterion</span>
-          <% variants.each do |variant| %>
-            <span><%= variant.name %></span>
-          <% end %>
+  <div class="verdict-summary">
+    <div class="verdict-model">
+      <h3 class="verdict-model-name"><%= tool.verdict_model_name %></h3>
+      <% if (stars = tool.verdict_star_rating) %>
+        <div class="verdict-stars" aria-label="<%= stars %> out of 5 stars">
+          <%= "★" * stars %><span><%= "☆" * (5 - stars) %></span>
         </div>
+      <% end %>
+      <% if (v = tool.overall_verdict) %>
+        <p class="verdict-score"><%= colored_score(v) %>/10</p>
+      <% end %>
+    </div>
 
-        <div class="score-category-summary score-overall-row" style="grid-template-columns: <%= grid_template %>">
-          <span class="score-category-name">Overall</span>
-          <% variants.each do |variant| %>
-            <strong><%= colored_score(variant.verdict) %></strong>
+    <div class="verdict-summary-grid">
+      <div class="verdict-list">
+        <h4>Best for:</h4>
+        <ul>
+          <% tool.verdict_best_for.each do |label| %>
+            <li><%= label %></li>
           <% end %>
-        </div>
+        </ul>
+      </div>
 
-        <% Rubric::OVERALL_CATEGORIES.each do |category, fields| %>
-          <details class="score-category">
-            <summary class="score-category-summary" style="grid-template-columns: <%= grid_template %>">
-              <span class="score-category-name">
-                <%= category %>
-              </span>
-              <% variants.each do |variant| %>
-                <%= colored_score(variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category)) %>
-              <% end %>
-            </summary>
-            <div class="scores-scroll score-category-details">
-              <table class="models-table scores-table">
-                <thead>
-                  <tr>
-                    <th>Sub-score</th>
-                    <% variants.each do |variant| %>
-                      <th><%= variant.name %></th>
-                    <% end %>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% fields.each do |field| %>
-                    <tr>
-                      <th class="models-name" scope="row"><%= Rubric::SUBCATEGORY_FIELDS.key(field) || field.to_s.humanize %></th>
-                      <% variants.each do |variant| %>
-                        <td><%= colored_score(variant.category_score([field], extra_scores: tool.rubric_field_values, category: category)) %></td>
-                      <% end %>
-                    </tr>
-                  <% end %>
-                </tbody>
-              </table>
-            </div>
-          </details>
-        <% end %>
+      <div class="verdict-list">
+        <h4>Not ideal for:</h4>
+        <ul>
+          <% tool.verdict_not_ideal_for.each do |label| %>
+            <li><%= label %></li>
+          <% end %>
+        </ul>
       </div>
-    <% else %>
-      <div class="scores-scroll">
-        <table class="models-table scores-table">
-          <thead>
-            <tr>
-              <th>Model</th>
-              <% if pd_variant_fields.any? %><th><%= pd_config[:short_label] || pd_config[:label] %></th><% end %>
-              <th>Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% variants.each do |variant| %>
-              <tr>
-                <td class="models-name"><%= variant.name %></td>
-                <% if pd_variant_fields.any? %>
-                  <td><%= colored_score(variant.category_score(pd_variant_fields, category: pd_config[:category])) %></td>
-                <% end %>
-                <td><strong><%= colored_score(variant.verdict) %></strong></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-  <% end %>
+
+      <dl class="verdict-facts">
+        <div>
+          <dt>Models available:</dt>
+          <dd><%= tool.verdict_models_available.presence || "—" %></dd>
+        </div>
+        <div>
+          <dt>Free tier:</dt>
+          <dd><%= tool.verdict_free_tier? ? "Yes" : "No" %></dd>
+        </div>
+      </dl>
+    </div>
+  </div>
 
   <% if detailed %>
     <p class="scorecard-note">
-      Scores are out of 10. Each category score weights its subcategory scores. Overall averages the category scores.
+      Score is out of 10. Best for uses the strongest category scores; not ideal uses weaker scores or missing capabilities.
       Our verdict is the best model's overall score.
     </p>
   <% else %>
-    <p class="scorecard-note">Scores are out of 10. Our verdict is the best model's overall score.</p>
+    <p class="scorecard-note">Score is out of 10. Our verdict is the best model's overall score.</p>
   <% end %>
 
   <% unless detailed %>
-    <p class="scorecard-review-link"><%= link_to "See review for complete score overview →", review_tool_path(tool) %></p>
+    <p class="scorecard-review-link"><%= link_to "See full review →", review_tool_path(tool) %></p>
   <% end %>
 </section>
