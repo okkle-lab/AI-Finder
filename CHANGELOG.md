@@ -16,6 +16,8 @@ breaking changes).
 - Verdict cards now summarize the best-scoring model with best-for,
   not-ideal-for, model-count, and free-tier guidance instead of listing
   individual model score rows.
+- Verdict cards now place the overall score inside the summary body and use
+  tighter heading spacing.
 
 ## [0.5.0] — 2026-06-17
 

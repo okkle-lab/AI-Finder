@@ -15,11 +15,6 @@
 <section class="specs-block scorecard<%= " scorecard-prominent" if detailed %>">
   <div class="scorecard-head">
     <h2 class="specs-title">Our verdict</h2>
-    <% if (v = tool.overall_verdict) %>
-      <span class="verdict-headline"><%= colored_score(v, css_class: "verdict-num") %>/10</span>
-    <% else %>
-      <span class="verdict-headline verdict-none">Not yet rated</span>
-    <% end %>
   </div>
 
   <%# Explains why the search surfaced this tool: the score it was ranked on
@@ -50,14 +45,10 @@
 
   <div class="verdict-summary">
     <div class="verdict-model">
-      <h3 class="verdict-model-name"><%= tool.verdict_model_name %></h3>
-      <% if (stars = tool.verdict_star_rating) %>
-        <div class="verdict-stars" aria-label="<%= stars %> out of 5 stars">
-          <%= "★" * stars %><span><%= "☆" * (5 - stars) %></span>
-        </div>
-      <% end %>
       <% if (v = tool.overall_verdict) %>
-        <p class="verdict-score"><%= colored_score(v) %>/10</p>
+        <p class="verdict-headline"><%= colored_score(v, css_class: "verdict-num") %>/10</p>
+      <% else %>
+        <p class="verdict-headline verdict-none">Not yet rated</p>
       <% end %>
     </div>
 
