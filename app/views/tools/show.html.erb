@@ -29,12 +29,6 @@
 
   <%= render "scorecard", tool: @tool, priority_dimension: @priority_dimension %>
 
-  <% if @tool.website_url.present? %>
-    <p class="detail-visit"><%= link_to "Visit #{@tool.name} →", @tool.website_url, target: "_blank", rel: "noopener", class: "visit-btn",
-          data: { controller: "event-logger", action: "click->event-logger#log",
-                  "event-logger-type-value": "card_click", "event-logger-tool-value": @tool.id } %></p>
-  <% end %>
-
   <% if @compare_candidates.results? %>
     <%= form_with url: compare_path, method: :get, class: "compare-add compare-with" do |f| %>
       <%= f.hidden_field :ids, value: @tool.id %>
@@ -57,6 +51,12 @@
             { include_blank: "Choose a tool…" }, class: "compare-select" %>
       <%= f.submit "Compare", class: "compare-add-btn" %>
     <% end %>
+  <% end %>
+
+  <% if @tool.website_url.present? %>
+    <p class="detail-visit"><%= link_to "Visit #{@tool.name} →", @tool.website_url, target: "_blank", rel: "noopener", class: "visit-btn",
+          data: { controller: "event-logger", action: "click->event-logger#log",
+                  "event-logger-type-value": "card_click", "event-logger-tool-value": @tool.id } %></p>
   <% end %>
 
   <footer class="detail-foot">

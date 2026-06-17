@@ -21,6 +21,7 @@ breaking changes).
 - Product pages are now focused on the verdict summary, with visit actions
   below the card and detailed pricing, availability, and full specs moved to
   the review page.
+- Product-page compare controls now appear above the external visit button.
 
 ## [0.5.0] — 2026-06-17
 
