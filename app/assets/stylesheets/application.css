@@ -329,7 +329,7 @@ a:hover { text-decoration: underline; }
 .compare-add-btn:hover { filter: brightness(1.05); }
 .compare-with .compare-add-btn {
   padding: 0; border-radius: 0; color: var(--accent); background: transparent;
-  text-shadow: none; box-shadow: none;
+  font: inherit; font-weight: 600; text-shadow: none; box-shadow: none;
 }
 .compare-with .compare-add-btn:hover { filter: none; text-decoration: underline; }
 
