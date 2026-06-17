@@ -7,6 +7,29 @@ breaking changes).
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-06-17
+
+### Changed
+- Started a follow-up improvement release after the rubric v3 update.
+- Review scorecard model headers now wrap within the card instead of
+  overflowing when several long model names are shown.
+- Verdict cards now summarize the best-scoring model with best-for,
+  not-ideal-for, model-count, and free-tier guidance instead of listing
+  individual model score rows.
+- Verdict cards now place the overall score inside the summary body and use
+  tighter heading spacing.
+- Product pages are now focused on the verdict summary, with visit actions
+  below the card and detailed pricing, availability, and full specs moved to
+  the review page.
+- Product-page compare controls now appear above the external visit button.
+- Product-page compare controls now sit right-aligned without a card frame,
+  with the compare action styled as a text link.
+- Compare controls now live on review pages instead of product pages.
+- Review verdict cards now include the expandable model scorecard again,
+  keeping product pages simplified.
+- Review-page compare controls are hidden while the inline comparison design is
+  reconsidered.
+
 ## [0.5.0] — 2026-06-17
 
 ### Added
@@ -184,7 +207,8 @@ recommendations, built on Rails + PostgreSQL.
   keyword parser and still works.
 - Catalogue figures are reasonable approximations pending human curation.
 
-[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/okkle-lab/AI-Finder/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/okkle-lab/AI-Finder/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/okkle-lab/AI-Finder/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/okkle-lab/AI-Finder/compare/v0.3.0...v0.4.0

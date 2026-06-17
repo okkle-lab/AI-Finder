@@ -31,6 +31,36 @@ class Tool < ApplicationRecord
   # score column it ranks on. Kept for callers, derived from the rubric map so
   # future score dimensions do not need separate ranking wiring.
   PRIORITY_DIMENSIONS = Rubric::PRIORITY_DIMENSIONS
+  VERDICT_BEST_FOR_CATEGORIES = [
+    "Writing",
+    "Research",
+    "Coding",
+    "Accuracy & trustworthiness",
+    "Image generation",
+    "Meetings",
+    "Translation"
+  ].freeze
+  VERDICT_NOT_IDEAL_LABELS = {
+    "Writing" => "Long-form writing",
+    "Research" => "Research-heavy work",
+    "Coding" => "Coding",
+    "Accuracy & trustworthiness" => "High-stakes accuracy",
+    "Ease of use" => "Beginners",
+    "Image generation" => "Image generation",
+    "Meetings" => "Meetings",
+    "Privacy & data safety" => "Privacy-sensitive work",
+    "Enterprise" => "Enterprise governance",
+    "Translation" => "Translation"
+  }.freeze
+  VERDICT_MISSING_FACT_LABELS = {
+    shows_citations: "Citation-heavy research",
+    has_deep_research: "Deep research",
+    no_training_on_user_data: "Privacy-sensitive work",
+    configurable_data_retention: "Strict data-retention needs",
+    has_coding_agent: "Agentic coding",
+    has_meeting_bot: "Automated meeting capture",
+    has_api: "API workflows"
+  }.freeze
 
   # Headline verdict (1-10) for the scorecard + ranking: the best of this
   # tool's per-model verdicts. For a tool with no model lineup, score the
@@ -44,6 +74,50 @@ class Tool < ApplicationRecord
 
   def best_model_variant
     model_variants.max_by { |variant| variant.verdict || -Float::INFINITY }
+  end
+
+  def verdict_model_name
+    name
+  end
+
+  def verdict_star_rating
+    return nil unless overall_verdict
+
+    (overall_verdict / 2.0).round.clamp(1, 5)
+  end
+
+  def verdict_category_scores
+    if (variant = best_model_variant)
+      variant.category_scores(extra_scores: rubric_field_values)
+    else
+      category_scores
+    end
+  end
+
+  def verdict_best_for(limit: 3)
+    scores = verdict_category_scores.slice(*VERDICT_BEST_FOR_CATEGORIES)
+    scores.sort_by { |_category, score| -score.to_f }.first(limit).map(&:first)
+  end
+
+  def verdict_not_ideal_for(limit: 3)
+    weak_categories = verdict_category_scores
+      .select { |_category, score| score.to_f < 6.5 }
+      .sort_by { |_category, score| score.to_f }
+      .map { |category, _score| VERDICT_NOT_IDEAL_LABELS.fetch(category, category) }
+
+    missing_facts = VERDICT_MISSING_FACT_LABELS.filter_map do |field, label|
+      label if respond_to?(field) && public_send(field) != true
+    end
+
+    (weak_categories + missing_facts).uniq.first(limit)
+  end
+
+  def verdict_models_available
+    model_variants.size
+  end
+
+  def verdict_free_tier?
+    consumer_free_app? || has_free_plan? || model_variants.any?(&:free_to_try)
   end
 
   def comparison_category_score(fields)

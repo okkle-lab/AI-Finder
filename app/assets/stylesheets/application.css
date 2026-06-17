@@ -242,8 +242,7 @@ a:hover { text-decoration: underline; }
 .card-review:hover { text-decoration: none; background: #4c1d95; }
 .detail-review-link { margin: 0.9rem 0 1.5rem; font-weight: 600; }
 .scorecard-review-link {
-  margin: 1rem 0 0; padding-top: 0.9rem; border-top: 1px solid var(--line);
-  font-weight: 600;
+  margin: 0.8rem 0 0; text-align: right; font-weight: 600;
 }
 
 /* ---- review page ---- */
@@ -275,6 +274,7 @@ a:hover { text-decoration: underline; }
 .chip:hover { text-decoration: none; filter: brightness(0.97); }
 .detail-why { font-size: 1.05rem; color: #374151; margin: 0 0 1.2rem; }
 .detail-labels { list-style: none; padding: 0; margin: 0 0 1.2rem; display: grid; gap: 0.4rem; }
+.detail-visit { margin: 1rem 0 0; }
 .visit-btn {
   display: inline-block; padding: 0.7rem 1.2rem; border-radius: 10px; font-weight: 700;
   color: #fff; background-image: var(--button-gradient);
@@ -318,7 +318,7 @@ a:hover { text-decoration: underline; }
 .compare-remove:hover { color: #b91c1c; }
 
 .compare-add { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 1.2rem 0 0; }
-.compare-with { margin: 1.2rem 0; padding: 0.9rem 1rem; background: var(--card-surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--card-shadow); }
+.compare-with { justify-content: flex-end; margin: 1.2rem 0 0; padding: 0; background: transparent; border: 0; box-shadow: none; }
 .compare-add-label { font-weight: 600; }
 .compare-select { padding: 0.5rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; font-size: 0.9rem; background: #fff; }
 .compare-add-btn {
@@ -327,18 +327,23 @@ a:hover { text-decoration: underline; }
   text-shadow: 0 1px 2px rgba(26, 26, 46, 0.18);
 }
 .compare-add-btn:hover { filter: brightness(1.05); }
+.compare-with .compare-add-btn {
+  padding: 0; border-radius: 0; color: var(--accent); background: transparent;
+  font: inherit; font-weight: 600; text-shadow: none; box-shadow: none;
+}
+.compare-with .compare-add-btn:hover { filter: none; text-decoration: underline; }
 
 /* ---- scorecard (detail page) ---- */
 .scorecard-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-.verdict-headline { font-size: 1.1rem; color: var(--muted); white-space: nowrap; }
+.verdict-headline { margin: 0; font-size: 1.1rem; color: var(--muted); white-space: nowrap; }
 .verdict-num { font-size: 1.9rem; font-weight: 800; color: var(--accent); }
 .verdict-none { font-size: 1rem; font-style: italic; }
 
 /* Bigger, wider verdict card on the review page */
-.scorecard-prominent { padding: 1.8rem 2rem; }
+.scorecard-prominent { padding: 1.35rem 1.6rem; }
 .scorecard-prominent .specs-title { font-size: 1.4rem; }
 .scorecard-prominent .verdict-headline { font-size: 1.6rem; }
-.scorecard-prominent .verdict-num { font-size: 4rem; line-height: 1; }
+.scorecard-prominent .verdict-num { font-size: 3.2rem; line-height: 1; }
 
 /* "Why you're seeing this" — explains the intent the search ranked on */
 .why-shown {
@@ -360,10 +365,31 @@ a:hover { text-decoration: underline; }
 .criterion { display: flex; justify-content: space-between; gap: 0.5rem; border-bottom: 1px solid var(--line); padding: 0.35rem 0; }
 .criterion dt { color: var(--muted); margin: 0; }
 .criterion dd { margin: 0; font-weight: 700; }
+.verdict-summary {
+  display: grid; grid-template-columns: minmax(10rem, 0.8fr) minmax(0, 1.6fr);
+  gap: 1rem 1.8rem; margin-top: 0.55rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.verdict-model { display: flex; align-items: flex-start; }
+.verdict-summary-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.4rem;
+}
+.verdict-list h4, .verdict-facts dt {
+  margin: 0 0 0.35rem; color: var(--ink); font-size: 0.9rem;
+}
+.verdict-list ul { margin: 0; padding-left: 1.15rem; color: #374151; }
+.verdict-list li { margin: 0.2rem 0; }
+.verdict-facts {
+  grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem 1.4rem; margin: 0;
+}
+.verdict-facts div { border-top: 1px solid var(--line); padding-top: 0.7rem; }
+.verdict-facts dd { margin: 0; font-weight: 800; color: var(--ink); }
 .scorecard-sub { font-size: 0.95rem; margin: 1.2rem 0 0.4rem; }
 .score-category-list {
   display: flex; flex-direction: column;
-  border-top: 1px solid var(--line);
+  margin-top: 1.2rem; border-top: 1px solid var(--line);
 }
 .score-category {
   border-bottom: 1px solid var(--line);
@@ -372,6 +398,7 @@ a:hover { text-decoration: underline; }
   display: grid; align-items: center; gap: 0.9rem;
   padding: 0.75rem 0; cursor: pointer; list-style: none;
 }
+.score-category-summary > * { min-width: 0; }
 .score-category-summary::-webkit-details-marker { display: none; }
 .score-category-summary::before {
   content: "›"; color: var(--muted); font-size: 1.2rem; line-height: 1;
@@ -384,8 +411,13 @@ a:hover { text-decoration: underline; }
 .score-category-header {
   cursor: default; color: var(--muted); font-size: 0.78rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.03em; padding-bottom: 0.45rem;
+  line-height: 1.25;
 }
 .score-category-header::before { content: ""; }
+.score-category-header span {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
 .score-overall-row {
   cursor: default; border-bottom: 1px solid var(--line);
 }
@@ -395,6 +427,10 @@ a:hover { text-decoration: underline; }
 .scores-table th[scope="row"] { text-align: left; color: var(--ink); }
 .scorecard-note { color: var(--muted); font-size: 0.82rem; margin: 0.9rem 0 0; line-height: 1.5; }
 .score-none { color: #c0c4cc; }
+
+@media (max-width: 700px) {
+  .verdict-summary, .verdict-summary-grid, .verdict-facts { grid-template-columns: 1fr; }
+}
 
 
 /* ---- per-tool review page ---- */
