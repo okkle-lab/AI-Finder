@@ -27,6 +27,8 @@ breaking changes).
 - Compare controls now live on review pages instead of product pages.
 - Review verdict cards now include the expandable model scorecard again,
   keeping product pages simplified.
+- Review-page compare controls are hidden while the inline comparison design is
+  reconsidered.
 
 ## [0.5.0] — 2026-06-17
 

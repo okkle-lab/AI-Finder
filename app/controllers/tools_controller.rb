@@ -7,8 +7,6 @@ class ToolsController < ApplicationController
   def review
     @tool   = Tool.find(params[:id])
     @review = @tool.display_review
-    @search_context = SearchContext.from_params(params)
-    @compare_candidates = CompareCandidates.for(@tool, search_context: @search_context)
     Event.record(event_type: "specs_expand", clicked_tool_id: @tool.id)
   end
 
