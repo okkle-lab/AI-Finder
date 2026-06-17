@@ -22,6 +22,8 @@ breaking changes).
   facts.
 - Category scores now use the rubric's atomic-score weights, while overall
   score remains an equal average of category composites.
+- Review-page score details are collapsed under category aggregate rows by
+  default and can be expanded on click.
 
 ## [0.4.0] — 2026-06-16
 
