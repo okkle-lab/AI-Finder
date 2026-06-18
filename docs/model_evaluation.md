@@ -40,6 +40,10 @@ The SwiftUI app preselects those files on launch. To update the shipped
 defaults, replace the files in `ModelEvalApp/Defaults/` and rerun
 `./package_app.sh`.
 
+The app version is stored in `ModelEvalApp/VERSION`. The package script writes
+that version into the macOS bundle metadata and produces a versioned zip
+alongside the latest zip. Release notes live in the root `CHANGELOG.md`.
+
 Drop in:
 
 - a prompt spreadsheet

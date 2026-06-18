@@ -3,10 +3,10 @@ set -euo pipefail
 
 APP_NAME="Model Eval Runner"
 BUNDLE_ID="com.mototax.modelevalrunner"
-VERSION="1.0.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+VERSION_FILE="${SCRIPT_DIR}/VERSION"
 BUILD_DIR="${SCRIPT_DIR}/.build/packaging"
 VENV_DIR="${BUILD_DIR}/pyinstaller-venv"
 RUNNER_DIST="${BUILD_DIR}/runner-dist"
@@ -16,8 +16,25 @@ ICONSET_DIR="${BUILD_DIR}/AppIcon.iconset"
 ICON_PATH="${BUILD_DIR}/AppIcon.icns"
 DIST_DIR="${SCRIPT_DIR}/dist"
 APP_DIR="${DIST_DIR}/${APP_NAME}.app"
-ZIP_PATH="${DIST_DIR}/${APP_NAME}-mac.zip"
 DEFAULTS_DIR="${SCRIPT_DIR}/Defaults"
+
+if [[ -n "${APP_VERSION:-}" ]]; then
+  VERSION="${APP_VERSION}"
+elif [[ -f "${VERSION_FILE}" ]]; then
+  VERSION="$(tr -d '[:space:]' < "${VERSION_FILE}")"
+else
+  echo "Missing ${VERSION_FILE}" >&2
+  exit 2
+fi
+
+if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.-]+)?$ ]]; then
+  echo "Invalid app version '${VERSION}'. Expected semantic versioning, e.g. 1.0.0." >&2
+  exit 2
+fi
+
+BUILD_NUMBER="${BUILD_NUMBER:-1}"
+ZIP_PATH="${DIST_DIR}/${APP_NAME}-${VERSION}-mac.zip"
+LATEST_ZIP_PATH="${DIST_DIR}/${APP_NAME}-mac.zip"
 
 if [[ -n "${PYTHON:-}" && -x "${PYTHON}" ]]; then
   BASE_PYTHON="${PYTHON}"
@@ -30,6 +47,7 @@ if [[ -z "${BASE_PYTHON}" ]]; then
   exit 2
 fi
 
+echo "Packaging ${APP_NAME} ${VERSION} (${BUILD_NUMBER})"
 echo "Using Python: ${BASE_PYTHON}"
 mkdir -p "${BUILD_DIR}" "${DIST_DIR}"
 
@@ -242,7 +260,7 @@ chmod +x "${APP_DIR}/Contents/MacOS/ModelEvalApp"
 chmod +x "${APP_DIR}/Contents/Resources/model_eval_runner"
 xattr -cr "${APP_DIR}"
 
-"${VENV_DIR}/bin/python" - "${APP_DIR}/Contents/Info.plist" "${BUNDLE_ID}" "${APP_NAME}" "${VERSION}" <<'PY'
+"${VENV_DIR}/bin/python" - "${APP_DIR}/Contents/Info.plist" "${BUNDLE_ID}" "${APP_NAME}" "${VERSION}" "${BUILD_NUMBER}" <<'PY'
 from pathlib import Path
 import plistlib
 import sys
@@ -251,6 +269,7 @@ plist_path = Path(sys.argv[1])
 bundle_id = sys.argv[2]
 app_name = sys.argv[3]
 version = sys.argv[4]
+build_number = sys.argv[5]
 
 plist = {
     "CFBundleDevelopmentRegion": "en",
@@ -262,7 +281,8 @@ plist = {
     "CFBundleName": app_name,
     "CFBundlePackageType": "APPL",
     "CFBundleShortVersionString": version,
-    "CFBundleVersion": "1",
+    "CFBundleVersion": build_number,
+    "CFBundleGetInfoString": f"{app_name} {version} ({build_number})",
     "LSApplicationCategoryType": "public.app-category.productivity",
     "LSMinimumSystemVersion": "14.0",
     "NSHighResolutionCapable": True,
@@ -276,10 +296,12 @@ PY
 codesign --force --deep --sign - "${APP_DIR}" >/dev/null
 codesign --verify --deep --strict --verbose=2 "${APP_DIR}"
 
-rm -f "${ZIP_PATH}"
+rm -f "${ZIP_PATH}" "${LATEST_ZIP_PATH}"
 ditto -c -k --keepParent "${APP_DIR}" "${ZIP_PATH}"
+cp "${ZIP_PATH}" "${LATEST_ZIP_PATH}"
 
 echo
 echo "Created: ${APP_DIR}"
 echo "Created: ${ZIP_PATH}"
+echo "Created: ${LATEST_ZIP_PATH}"
 echo "Bundled runner: ${APP_DIR}/Contents/Resources/model_eval_runner"

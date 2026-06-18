@@ -26,6 +26,16 @@ Default spreadsheets:
 The app preselects these files on launch. Replace the files in `Defaults/` and
 run `./package_app.sh` again to ship updated defaults.
 
+Versioning:
+
+- `VERSION` is the app version source of truth.
+- `./package_app.sh` writes `VERSION` into the packaged app's `Info.plist` and
+  creates both `Model Eval Runner-<version>-mac.zip` and
+  `Model Eval Runner-mac.zip`.
+- Set `BUILD_NUMBER=2 ./package_app.sh` when producing another build of the
+  same version.
+- Add release notes to the root `CHANGELOG.md` whenever `VERSION` changes.
+
 Inputs:
 
 - Prompt spreadsheet: first sheet with `TESTID`, `Prompt`, and optional `Additional source information`.

@@ -116,6 +116,25 @@ private enum AppPaths {
     }
 }
 
+private enum AppVersion {
+    static var display: String {
+        if let bundleVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+           !bundleVersion.isEmpty {
+            return bundleVersion
+        }
+
+        let versionFile = AppPaths.developmentRepoRoot.appendingPathComponent("ModelEvalApp/VERSION")
+        if let text = try? String(contentsOf: versionFile, encoding: .utf8) {
+            let version = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !version.isEmpty {
+                return version
+            }
+        }
+
+        return "Development"
+    }
+}
+
 @MainActor
 final class RunnerViewModel: ObservableObject {
     @Published var promptSpreadsheetURL: URL? = AppPaths.defaultPromptSpreadsheetURL
@@ -291,7 +310,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Model Eval Runner")
                     .font(.title2.weight(.semibold))
-                Text("Prompt sheet + model sheet")
+                Text("Prompt sheet + model sheet - v\(AppVersion.display)")
                     .foregroundStyle(.secondary)
             }
             Spacer()
