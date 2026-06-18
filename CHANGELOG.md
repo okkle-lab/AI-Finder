@@ -7,6 +7,16 @@ breaking changes).
 
 ## [Unreleased]
 
+### Added
+- Added an automated model-evaluation runner for prompt/model spreadsheets,
+  with resumable JSONL, CSV, live Excel output, and a final results workbook.
+- Added a SwiftUI macOS app for running evaluations with drag-and-drop
+  spreadsheets, bundled default workbooks, standard edit shortcuts, image-test
+  support, and a larger launch window.
+- Added a macOS packaging script that bundles the Python runner, default
+  spreadsheets, app icon, version metadata, ad-hoc signing, and versioned zip
+  output.
+
 ## [0.5.1] — 2026-06-17
 
 ### Changed
