@@ -63,7 +63,7 @@ Use Dry Run to validate both spreadsheets without making API calls or needing a 
 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
 `max_tokens`, lower the app's Max Tokens value. The same app setting is sent as
-`max_completion_tokens` for direct OpenAI text models. The default is `200`.
+`max_completion_tokens` for direct OpenAI text models. The default is `1000`.
 Direct OpenAI text requests omit custom `temperature` by default because some
 newer OpenAI models only accept the provider default.
 
@@ -82,6 +82,10 @@ Output:
 - `responses.jsonl`
 - `responses.csv`
 - generated images under `images/<model-key>/`
+
+`responses.csv`, `responses.xlsx`, and the final workbook's `Run Results` sheet
+show per-call prompt, completion, hidden reasoning-token, and total token counts
+when the provider returns usage.
 
 When run from Swift Package Manager, the app creates a timestamped output folder
 under `AI-Finder/outputs/model_tests/` unless another folder is selected. When

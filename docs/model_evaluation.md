@@ -8,6 +8,10 @@ This runner reads a prompt spreadsheet, reads a model spreadsheet, runs eligible
 - `model_test_results.xlsx` with the original prompt library plus `Run Summary`, `Run Results`, and `Skipped Tests`
 - generated image files under `images/<model-key>/` inside the run output directory
 
+The CSV and workbook `Run Results` sheet include per-call `prompt_tokens`,
+`completion_tokens`, hidden `reasoning_tokens`, and `total_tokens` columns when
+the provider reports usage.
+
 By default it skips image-generation rows, evidence-review/privacy/security/enterprise rows, and manual reviewer rows. Use `--include-image` when you want to run image-generation tests too.
 
 ## SwiftUI App
@@ -172,7 +176,7 @@ python3 script/model_eval_runner.py \
   --include-image
 ```
 
-The runner saves generated images to the run output directory and records local file paths in `responses.csv` and the `Run Results` workbook sheet. Image outputs are left unscored by the judge model; score them manually in the workbook.
+The runner saves generated images to the run output directory and records local file paths in `responses.csv` and the `Run Results` workbook sheet. Image outputs are left for downstream evaluation.
 
 The bundled model workbook includes a `gpt-image-2` row configured with
 `Provider=openai_images`, `Provider Type=openai_image_generation`,
@@ -182,20 +186,6 @@ account or organization verification for GPT Image models.
 The current workbook's `IG4` row is treated as an image-editing prompt but has
 no source image. The runner skips it until `Input Material` contains a local
 source image path.
-
-## Run and auto-score
-
-Auto-scoring still uses a judge model from `config/model_eval_models.example.json` / JSON config. The SwiftUI app currently leaves scoring out so the app only needs the two spreadsheets.
-
-```bash
-python3 script/model_eval_runner.py \
-  --workbook "/path/to/prompts.xlsx" \
-  --models-workbook "/path/to/models.xlsx" \
-  --config config/model_eval_models.json \
-  --score
-```
-
-The judge returns a 1-10 quality score and short reasoning for each model response. Human review is still recommended for close calls, current-web shopping prompts, and anything where sources need checking.
 
 ## Useful filters
 

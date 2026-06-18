@@ -18,6 +18,7 @@ import json
 import mimetypes
 import os
 import re
+import ssl
 import sys
 import threading
 import time
@@ -40,6 +41,11 @@ except ImportError as exc:  # pragma: no cover - exercised by user environment
         file=sys.stderr,
     )
     raise SystemExit(2) from exc
+
+try:
+    import certifi
+except ImportError:  # pragma: no cover - optional outside packaged app
+    certifi = None
 
 
 HEADER_ALIASES = {
@@ -101,6 +107,7 @@ IMAGE_EDIT_PROMPT_MARKERS = (
     "restore ",
     "recolor ",
 )
+DEFAULT_MAX_TOKENS = 1000
 CSV_COLUMNS = [
     "run_id",
     "timestamp",
@@ -119,9 +126,11 @@ CSV_COLUMNS = [
     "response",
     "output_files",
     "output_urls",
-    "score",
-    "reasoning",
     "latency_seconds",
+    "prompt_tokens",
+    "completion_tokens",
+    "reasoning_tokens",
+    "total_tokens",
     "usage",
     "error",
 ]
@@ -249,13 +258,12 @@ def default_config() -> dict[str, Any]:
         },
         "request": {
             "temperature": 0.2,
-            "max_tokens": 200,
+            "max_tokens": DEFAULT_MAX_TOKENS,
             "timeout_seconds": 120,
             "retries": 2,
             "sleep_seconds": 0.5,
         },
         "models": [],
-        "judge": {"enabled": False},
     }
 
 
@@ -785,9 +793,25 @@ def validate_api_keys(
         )
 
 
+def certifi_https_context() -> ssl.SSLContext | None:
+    if certifi is None:
+        return None
+    ca_bundle = Path(certifi.where())
+    if not ca_bundle.exists():
+        return None
+    return ssl.create_default_context(cafile=str(ca_bundle))
+
+
+def open_url(url_or_request: str | urllib.request.Request, timeout: int) -> Any:
+    context = certifi_https_context()
+    if context is None:
+        return urllib.request.urlopen(url_or_request, timeout=timeout)
+    return urllib.request.urlopen(url_or_request, timeout=timeout, context=context)
+
+
 def openrouter_model_catalogue(base_url: str) -> set[str]:
     url = f"{base_url.rstrip('/')}/models"
-    with urllib.request.urlopen(url, timeout=30) as response:
+    with open_url(url, timeout=30) as response:
         payload = json.loads(response.read().decode("utf-8"))
     return {
         clean_text(item.get("id"))
@@ -951,14 +975,27 @@ def supports_custom_temperature(provider: dict[str, Any], model: dict[str, Any])
     return "api.openai.com" not in base_url
 
 
+def redact_secrets(value: Any) -> str:
+    text = "" if value is None else str(value)
+    text = re.sub(r"Bearer\s+[^'\"\\\s]+", "Bearer [redacted]", text)
+    text = re.sub(r"sk-or-v1-[A-Za-z0-9]+", "sk-or-v1-[redacted]", text)
+    text = re.sub(r"sk-proj-[A-Za-z0-9_-]+", "sk-proj-[redacted]", text)
+    text = re.sub(r"sk-[A-Za-z0-9][A-Za-z0-9_-]{12,}", "sk-[redacted]", text)
+    return text
+
+
 def api_key_for(provider: dict[str, Any]) -> str:
     env_name = provider.get("api_key_env")
     if not env_name:
         return ""
-    api_key = os.getenv(env_name)
+    api_key = re.sub(r"\s+", "", os.getenv(env_name) or "")
     if not api_key:
         raise ValueError(f"Environment variable {env_name} is not set.")
     return api_key
+
+
+def header_value(value: Any) -> str:
+    return re.sub(r"[\r\n]+", " ", clean_text(value)).strip()
 
 
 def build_headers(provider: dict[str, Any], model: dict[str, Any]) -> dict[str, str]:
@@ -968,8 +1005,18 @@ def build_headers(provider: dict[str, Any], model: dict[str, Any]) -> dict[str, 
     api_key = api_key_for(provider)
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    headers.update(provider.get("extra_headers", {}))
-    headers.update(model.get("extra_headers", {}))
+    headers.update(
+        {
+            header_value(name): header_value(value)
+            for name, value in provider.get("extra_headers", {}).items()
+        }
+    )
+    headers.update(
+        {
+            header_value(name): header_value(value)
+            for name, value in model.get("extra_headers", {}).items()
+        }
+    )
     return headers
 
 
@@ -1042,7 +1089,7 @@ def post_json(
     for attempt in range(retries + 1):
         retry_delay = min(8.0, float(2**attempt))
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
+            with open_url(request, timeout=timeout) as response:
                 body = response.read().decode("utf-8")
             return json.loads(body)
         except urllib.error.HTTPError as exc:
@@ -1082,7 +1129,7 @@ def call_openai_compatible(
     payload: dict[str, Any] = {
         "model": model.get("model"),
         "messages": messages,
-        max_tokens_parameter(provider, model): options.get("max_tokens", 200),
+        max_tokens_parameter(provider, model): options.get("max_tokens", DEFAULT_MAX_TOKENS),
     }
     if supports_custom_temperature(provider, model):
         payload["temperature"] = options.get("temperature", 0.2)
@@ -1250,7 +1297,7 @@ def post_multipart(
     for attempt in range(retries + 1):
         retry_delay = min(8.0, float(2**attempt))
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
+            with open_url(request, timeout=timeout) as response:
                 response_body = response.read().decode("utf-8")
             return json.loads(response_body)
         except urllib.error.HTTPError as exc:
@@ -1362,77 +1409,6 @@ def call_image_model(
     return call_openai_image_generation(config, model, test, output_dir)
 
 
-def extract_json_object(text: str) -> dict[str, Any]:
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.DOTALL)
-    if fenced:
-        return json.loads(fenced.group(1))
-
-    start = text.find("{")
-    end = text.rfind("}")
-    if start >= 0 and end > start:
-        return json.loads(text[start : end + 1])
-
-    raise ValueError("No JSON object found in judge response.")
-
-
-def judge_messages(test: PromptTest, model_response: str) -> list[dict[str, str]]:
-    user = f"""
-Grade the model response for this benchmark test.
-
-Test ID: {test.test_id}
-Category: {test.category}
-Criterion: {test.criterion}
-Prompt:
-{test.prompt}
-
-Input material:
-{test.input_material or "(none)"}
-
-Model response:
-{model_response}
-
-Return only JSON with:
-{{"score": number from 1 to 10, "reasoning": "one or two concise sentences"}}
-
-Scoring guidance:
-- Reward direct prompt adherence, correctness, completeness, and useful structure.
-- Penalize hallucinated current facts, missing requested sources, unsafe assumptions,
-  or refusing when enough information was provided.
-- For prompts that require current prices, availability, or citations, penalize
-  unsupported claims unless the response clearly states its limits.
-""".strip()
-
-    return [
-        {
-            "role": "system",
-            "content": "You are a strict but fair evaluator of AI model benchmark outputs.",
-        },
-        {"role": "user", "content": user},
-    ]
-
-
-def score_response(
-    config: dict[str, Any],
-    judge: dict[str, Any],
-    test: PromptTest,
-    response: str,
-) -> tuple[float | None, str]:
-    judge_response, _usage = call_openai_compatible(config, judge, judge_messages(test, response))
-    parsed = extract_json_object(judge_response)
-    score = parsed.get("score")
-    reasoning = clean_text(parsed.get("reasoning"))
-    try:
-        numeric_score = float(score)
-    except (TypeError, ValueError):
-        numeric_score = None
-    return numeric_score, reasoning
-
-
 def load_existing_jsonl(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -1470,6 +1446,44 @@ def stringify_usage(value: Any) -> str:
     return json.dumps(value, sort_keys=True)
 
 
+def token_count_value(value: Any) -> int | str:
+    if value in (None, "") or isinstance(value, bool):
+        return ""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return ""
+
+
+def usage_token_count(usage: dict[str, Any], key: str) -> int | str:
+    return token_count_value(usage.get(key))
+
+
+def usage_detail_token_count(
+    usage: dict[str, Any],
+    details_key: str,
+    key: str,
+) -> int | str:
+    details = usage.get(details_key)
+    if not isinstance(details, dict):
+        return ""
+    return token_count_value(details.get(key))
+
+
+def reasoning_token_count(usage: dict[str, Any]) -> int | str:
+    top_level = usage_token_count(usage, "reasoning_tokens")
+    if top_level != "":
+        return top_level
+    return usage_detail_token_count(
+        usage,
+        "completion_tokens_details",
+        "reasoning_tokens",
+    )
+
+
 def write_results_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=CSV_COLUMNS)
@@ -1491,6 +1505,15 @@ def average(values: list[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
+def result_number_values(rows: list[dict[str, Any]], key: str) -> list[int]:
+    values: list[int] = []
+    for row in rows:
+        value = token_count_value(row.get(key))
+        if isinstance(value, int):
+            values.append(value)
+    return values
+
+
 def summarize_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_model: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
@@ -1498,23 +1521,12 @@ def summarize_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     summaries: list[dict[str, Any]] = []
     for model_key, model_rows in sorted(by_model.items()):
-        scored = [row for row in model_rows if row.get("score") not in (None, "")]
-        scores = [float(row["score"]) for row in scored]
-        weighted_pairs = [
-            (float(row["score"]), float(row.get("weight") or 1.0))
-            for row in scored
-        ]
-        weight_total = sum(weight for _score, weight in weighted_pairs)
-        weighted_avg = (
-            sum(score * weight for score, weight in weighted_pairs) / weight_total
-            if weight_total
-            else None
-        )
         latencies = [
             float(row["latency_seconds"])
             for row in model_rows
             if row.get("latency_seconds") not in (None, "")
         ]
+        total_tokens = result_number_values(model_rows, "total_tokens")
         summaries.append(
             {
                 "model_key": model_key,
@@ -1527,9 +1539,9 @@ def summarize_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     if row.get("response") or row.get("output_files") or row.get("output_urls")
                 ),
                 "errors": sum(1 for row in model_rows if row.get("error")),
-                "avg_score": average(scores),
-                "weighted_avg": weighted_avg,
                 "avg_latency_seconds": average(latencies),
+                "total_tokens": sum(total_tokens) if total_tokens else None,
+                "avg_total_tokens": average(total_tokens),
             }
         )
     return summaries
@@ -1582,9 +1594,9 @@ def populate_results_sheets(
                 "Attempted",
                 "Completed",
                 "Errors",
-                "Average Score",
-                "Weighted Average",
                 "Average Latency Seconds",
+                "Total Tokens",
+                "Average Total Tokens",
             ]
         ],
     )
@@ -1597,9 +1609,9 @@ def populate_results_sheets(
                 summary["attempted"],
                 summary["completed"],
                 summary["errors"],
-                summary["avg_score"],
-                summary["weighted_avg"],
                 summary["avg_latency_seconds"],
+                summary["total_tokens"],
+                summary["avg_total_tokens"],
             ]
         )
 
@@ -1626,7 +1638,7 @@ def populate_results_sheets(
 
     set_widths(
         summary_ws,
-        {1: 16, 2: 28, 3: 34, 4: 12, 5: 12, 6: 10, 7: 14, 8: 16, 9: 22},
+        {1: 16, 2: 28, 3: 34, 4: 12, 5: 12, 6: 10, 7: 22, 8: 14, 9: 20},
     )
     set_widths(
         result_ws,
@@ -1646,9 +1658,13 @@ def populate_results_sheets(
             15: 80,
             16: 58,
             17: 58,
-            19: 48,
-            20: 16,
-            22: 36,
+            18: 16,
+            19: 14,
+            20: 17,
+            21: 17,
+            22: 14,
+            23: 42,
+            24: 14,
         },
     )
     set_widths(skipped_ws, {1: 12, 2: 26, 3: 30, 4: 22, 5: 38})
@@ -1690,12 +1706,11 @@ def result_row(
     response: str = "",
     output_files: list[str] | None = None,
     output_urls: list[str] | None = None,
-    score: float | None = None,
-    reasoning: str = "",
     latency_seconds: float | None = None,
     usage: dict[str, Any] | None = None,
     error: str = "",
 ) -> dict[str, Any]:
+    usage_data = usage or {}
     return {
         "run_id": run_id,
         "timestamp": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -1714,10 +1729,12 @@ def result_row(
         "response": response,
         "output_files": "\n".join(output_files or []),
         "output_urls": "\n".join(output_urls or []),
-        "score": score if score is not None else "",
-        "reasoning": reasoning,
         "latency_seconds": round(latency_seconds, 3) if latency_seconds is not None else "",
-        "usage": usage or {},
+        "prompt_tokens": usage_token_count(usage_data, "prompt_tokens"),
+        "completion_tokens": usage_token_count(usage_data, "completion_tokens"),
+        "reasoning_tokens": reasoning_token_count(usage_data),
+        "total_tokens": usage_token_count(usage_data, "total_tokens"),
+        "usage": usage_data,
         "error": error,
     }
 
@@ -1788,7 +1805,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--sheet", default="Test Prompts", help="Prompt-library sheet name.")
     parser.add_argument("--output-dir", help="Output directory. Defaults to outputs/model_tests/<timestamp>.")
     parser.add_argument("--dry-run", action="store_true", help="Print the run plan without API calls.")
-    parser.add_argument("--score", action="store_true", help="Auto-score each response with config.judge.")
     parser.add_argument("--force", action="store_true", help="Ignore existing responses.jsonl in output-dir.")
     parser.add_argument(
         "--max-tokens",
@@ -1897,10 +1913,6 @@ def main(argv: list[str]) -> int:
     validate_api_keys(config, pairs)
     validate_openrouter_model_ids(config, pairs)
 
-    judge = config.get("judge", {})
-    if args.score and not judge.get("enabled", False):
-        raise ValueError("Set judge.enabled=true in the config before using --score.")
-
     print_plan(config, selected_tests, skipped, models)
     print_parallel_plan(config, pairs, args.parallel_products, args.product_workers)
 
@@ -1947,7 +1959,6 @@ def main(argv: list[str]) -> int:
     done_count = len(completed)
     progress_lock = threading.Lock()
     output_lock = threading.Lock()
-    judge_lock = threading.Lock()
 
     def next_progress() -> int:
         nonlocal done_count
@@ -1983,19 +1994,12 @@ def main(argv: list[str]) -> int:
             )
 
         response, usage = call_openai_compatible(config, model, create_messages(test))
-        score = None
-        reasoning = ""
-        if args.score:
-            with judge_lock:
-                score, reasoning = score_response(config, judge, test, response)
         return result_row(
             run_id=run_id,
             model=model,
             test=test,
             provider=provider,
             response=response,
-            score=score,
-            reasoning=reasoning,
             latency_seconds=time.monotonic() - started,
             usage=usage,
         )
@@ -2043,10 +2047,10 @@ def main(argv: list[str]) -> int:
                     provider=provider,
                     output_type="image" if is_image_test(test) else "text",
                     latency_seconds=time.monotonic() - started,
-                    error=f"{type(exc).__name__}: {exc}",
+                    error=redact_secrets(f"{type(exc).__name__}: {exc}"),
                 )
                 if args.verbose_errors:
-                    print(traceback.format_exc(), file=sys.stderr)
+                    print(redact_secrets(traceback.format_exc()), file=sys.stderr)
                 else:
                     print(f"  error: {row['error']}", file=sys.stderr)
                 if model_key in rate_limited_models:
@@ -2104,5 +2108,5 @@ if __name__ == "__main__":
         print("Cancelled.", file=sys.stderr)
         raise SystemExit(130)
     except Exception as exc:
-        print(f"Error: {exc}", file=sys.stderr)
+        print(f"Error: {redact_secrets(exc)}", file=sys.stderr)
         raise SystemExit(1)
