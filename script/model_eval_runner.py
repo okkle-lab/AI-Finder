@@ -89,6 +89,16 @@ MODEL_HEADER_ALIASES = {
 }
 REQUIRED_MODEL_FIELDS = {"model"}
 MANUAL_PROMPT_MARKERS = ("reviewer assessment",)
+IMAGE_EDIT_PROMPT_MARKERS = (
+    "replace ",
+    "edit ",
+    "modify ",
+    "change ",
+    "remove ",
+    "retouch ",
+    "restore ",
+    "recolor ",
+)
 CSV_COLUMNS = [
     "run_id",
     "timestamp",
@@ -178,7 +188,16 @@ def is_image_test(test: PromptTest) -> bool:
 
 
 def is_image_edit_test(test: PromptTest) -> bool:
-    return is_image_test(test) and normalized(test.criterion) == "image editing"
+    if not is_image_test(test):
+        return False
+    criterion = normalized(test.criterion)
+    eval_method = normalized(test.eval_method)
+    prompt = normalized(test.prompt)
+    return (
+        criterion == "image editing"
+        or "image edit" in eval_method
+        or prompt.startswith(IMAGE_EDIT_PROMPT_MARKERS)
+    )
 
 
 def parse_weight(value: Any) -> float:
@@ -276,6 +295,30 @@ def model_cell(ws: Any, row_number: int, columns: dict[str, int], field: str) ->
     return ws.cell(row_number, column).value if column else ""
 
 
+def header_column_positions(ws: Any, header_row: int, aliases: list[str]) -> list[int]:
+    values = [clean_text(cell.value) for cell in ws[header_row]]
+    normalized_values = {
+        normalized_header(value): index + 1
+        for index, value in enumerate(values)
+        if value
+    }
+
+    positions: list[int] = []
+    for alias in aliases:
+        column = normalized_values.get(normalized_header(alias))
+        if column and column not in positions:
+            positions.append(column)
+    return positions
+
+
+def first_non_empty_cell(ws: Any, row_number: int, columns: Iterable[int]) -> str:
+    for column in columns:
+        value = clean_text(ws.cell(row_number, column).value)
+        if value:
+            return value
+    return ""
+
+
 def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[str, Any]:
     wb = load_workbook(models_path, data_only=True)
     ws = wb[wb.sheetnames[0]]
@@ -284,15 +327,18 @@ def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[
     config["providers"] = dict(base_config.get("providers", {}))
     config["models"] = []
 
+    model_columns = header_column_positions(ws, header_row, MODEL_HEADER_ALIASES["model"])
     used_keys: set[str] = set()
     for row_number in range(header_row + 1, ws.max_row + 1):
-        model_id = clean_text(model_cell(ws, row_number, columns, "model"))
-        if not model_id:
-            continue
-
         provider = clean_text(model_cell(ws, row_number, columns, "provider"))
         provider_type = clean_text(model_cell(ws, row_number, columns, "provider_type"))
         capabilities_cell = model_cell(ws, row_number, columns, "capabilities")
+        model_id = clean_text(model_cell(ws, row_number, columns, "model"))
+        if not model_id and (provider or provider_type or clean_text(capabilities_cell)):
+            model_id = first_non_empty_cell(ws, row_number, model_columns)
+        if not model_id:
+            continue
+
         name = clean_text(model_cell(ws, row_number, columns, "name")) or model_id
         product = clean_text(model_cell(ws, row_number, columns, "product"))
         if not clean_text(capabilities_cell) and looks_like_audio_model(product, name, model_id):

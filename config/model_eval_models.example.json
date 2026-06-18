@@ -50,9 +50,9 @@
     },
     {
       "key": "image_01",
-      "name": "Replace with image model",
+      "name": "GPT Image 2",
       "provider": "openai_images",
-      "model": "image-model-id",
+      "model": "gpt-image-2",
       "capabilities": ["image"],
       "enabled": false
     }

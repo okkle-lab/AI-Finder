@@ -13,6 +13,8 @@ breaking changes).
 - Added a SwiftUI macOS app for running evaluations with drag-and-drop
   spreadsheets, bundled default workbooks, standard edit shortcuts, image-test
   support, and a larger launch window.
+- Added a bundled `gpt-image-2` model row for OpenAI Image API evaluations,
+  with image generation off by default in the app to avoid accidental spend.
 - Added a macOS packaging script that bundles the Python runner, default
   spreadsheets, app icon, version metadata, ad-hoc signing, and versioned zip
   output.

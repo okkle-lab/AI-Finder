@@ -41,6 +41,8 @@ Inputs:
 - Prompt spreadsheet: first sheet with `TESTID`, `Prompt`, and optional `Additional source information`.
 - Model spreadsheet: first sheet with `Model ID`, plus optional `OpenRouter Model ID`, `Model Name`, `Provider`, `Capabilities`, and `Enabled`.
 - API key: cloud providers need authentication. For the default text route, paste one OpenRouter key into the app.
+- Image generation: off by default. Turn on Image Generation and paste an
+  OpenAI API key to run the bundled `gpt-image-2` image model row.
 
 Use Dry Run to validate both spreadsheets without making API calls or needing a key.
 
