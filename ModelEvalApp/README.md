@@ -18,6 +18,14 @@ open dist
 This creates `dist/Model Eval Runner.app` with the Python runner bundled inside
 the app, so users do not need to install `openpyxl` or use Terminal.
 
+Default spreadsheets:
+
+- `Defaults/Model Test Prompts for Automation.xlsx`
+- `Defaults/AI_model_variants.xlsx`
+
+The app preselects these files on launch. Replace the files in `Defaults/` and
+run `./package_app.sh` again to ship updated defaults.
+
 Inputs:
 
 - Prompt spreadsheet: first sheet with `TESTID`, `Prompt`, and optional `Additional source information`.

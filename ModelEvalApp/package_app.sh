@@ -17,6 +17,7 @@ ICON_PATH="${BUILD_DIR}/AppIcon.icns"
 DIST_DIR="${SCRIPT_DIR}/dist"
 APP_DIR="${DIST_DIR}/${APP_NAME}.app"
 ZIP_PATH="${DIST_DIR}/${APP_NAME}-mac.zip"
+DEFAULTS_DIR="${SCRIPT_DIR}/Defaults"
 
 if [[ -n "${PYTHON:-}" && -x "${PYTHON}" ]]; then
   BASE_PYTHON="${PYTHON}"
@@ -234,8 +235,12 @@ mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
 cp "${SWIFT_BIN}" "${APP_DIR}/Contents/MacOS/ModelEvalApp"
 cp "${RUNNER_DIST}/model_eval_runner" "${APP_DIR}/Contents/Resources/model_eval_runner"
 cp "${ICON_PATH}" "${APP_DIR}/Contents/Resources/AppIcon.icns"
+if [[ -d "${DEFAULTS_DIR}" ]]; then
+  ditto "${DEFAULTS_DIR}" "${APP_DIR}/Contents/Resources/Defaults"
+fi
 chmod +x "${APP_DIR}/Contents/MacOS/ModelEvalApp"
 chmod +x "${APP_DIR}/Contents/Resources/model_eval_runner"
+xattr -cr "${APP_DIR}"
 
 "${VENV_DIR}/bin/python" - "${APP_DIR}/Contents/Info.plist" "${BUNDLE_ID}" "${APP_NAME}" "${VERSION}" <<'PY'
 from pathlib import Path

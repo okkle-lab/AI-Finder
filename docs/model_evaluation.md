@@ -31,6 +31,15 @@ The packaged app bundles the Python runner and spreadsheet dependencies. Users
 can launch `dist/Model Eval Runner.app` directly, or share
 `dist/Model Eval Runner-mac.zip`.
 
+Default spreadsheets live in `ModelEvalApp/Defaults/`:
+
+- `Model Test Prompts for Automation.xlsx`
+- `AI_model_variants.xlsx`
+
+The SwiftUI app preselects those files on launch. To update the shipped
+defaults, replace the files in `ModelEvalApp/Defaults/` and rerun
+`./package_app.sh`.
+
 Drop in:
 
 - a prompt spreadsheet

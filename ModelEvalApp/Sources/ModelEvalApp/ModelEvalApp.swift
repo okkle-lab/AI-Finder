@@ -14,6 +14,9 @@ struct ModelEvalApp: App {
 }
 
 private enum AppPaths {
+    static let defaultPromptSpreadsheetName = "Model Test Prompts for Automation.xlsx"
+    static let defaultModelSpreadsheetName = "AI_model_variants.xlsx"
+
     static var developmentRepoRoot: URL {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<4 {
@@ -28,6 +31,28 @@ private enum AppPaths {
 
     static var developmentScriptURL: URL {
         developmentRepoRoot.appendingPathComponent("script/model_eval_runner.py")
+    }
+
+    static var defaultsDirectoryURL: URL? {
+        if let bundledDefaults = Bundle.main.resourceURL?.appendingPathComponent("Defaults", isDirectory: true),
+           FileManager.default.fileExists(atPath: bundledDefaults.path) {
+            return bundledDefaults
+        }
+
+        let developmentDefaults = developmentRepoRoot.appendingPathComponent("ModelEvalApp/Defaults", isDirectory: true)
+        if FileManager.default.fileExists(atPath: developmentDefaults.path) {
+            return developmentDefaults
+        }
+
+        return nil
+    }
+
+    static var defaultPromptSpreadsheetURL: URL? {
+        defaultSpreadsheetURL(named: defaultPromptSpreadsheetName)
+    }
+
+    static var defaultModelSpreadsheetURL: URL? {
+        defaultSpreadsheetURL(named: defaultModelSpreadsheetName)
     }
 
     static var defaultOutputBaseURL: URL {
@@ -53,12 +78,18 @@ private enum AppPaths {
         ]
         return candidates.first { FileManager.default.isExecutableFile(atPath: $0) } ?? "/usr/bin/python3"
     }
+
+    private static func defaultSpreadsheetURL(named filename: String) -> URL? {
+        guard let defaultsDirectoryURL else { return nil }
+        let url = defaultsDirectoryURL.appendingPathComponent(filename)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
 }
 
 @MainActor
 final class RunnerViewModel: ObservableObject {
-    @Published var promptSpreadsheetURL: URL?
-    @Published var modelSpreadsheetURL: URL?
+    @Published var promptSpreadsheetURL: URL? = AppPaths.defaultPromptSpreadsheetURL
+    @Published var modelSpreadsheetURL: URL? = AppPaths.defaultModelSpreadsheetURL
     @Published var outputBaseURL: URL = AppPaths.defaultOutputBaseURL
     @Published var pythonPath: String = AppPaths.defaultPythonPath
     @Published var includeImages = true
