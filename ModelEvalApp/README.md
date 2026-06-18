@@ -53,6 +53,8 @@ Use Dry Run to validate both spreadsheets without making API calls or needing a 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
 `max_tokens`, lower the app's Max Tokens value. The same app setting is sent as
 `max_completion_tokens` for direct OpenAI text models. The default is `1000`.
+Direct OpenAI text requests omit custom `temperature` by default because some
+newer OpenAI models only accept the provider default.
 
 If OpenAI returns HTTP 429, your account hit a rate, usage, or budget limit.
 The runner now shows the provider's message and skips the rest of that model

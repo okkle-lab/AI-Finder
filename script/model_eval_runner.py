@@ -232,6 +232,7 @@ def default_config() -> dict[str, Any]:
                 "base_url": "https://api.openai.com/v1",
                 "api_key_env": "OPENAI_API_KEY",
                 "max_tokens_param": "max_completion_tokens",
+                "supports_custom_temperature": False,
             },
             "openai_images": {
                 "type": "openai_image_generation",
@@ -887,6 +888,18 @@ def max_tokens_parameter(provider: dict[str, Any], model: dict[str, Any]) -> str
     return "max_tokens"
 
 
+def supports_custom_temperature(provider: dict[str, Any], model: dict[str, Any]) -> bool:
+    configured = model.get(
+        "supports_custom_temperature",
+        provider.get("supports_custom_temperature"),
+    )
+    if configured is not None:
+        return truthy(configured, default=True)
+
+    base_url = str(provider.get("base_url", "")).lower()
+    return "api.openai.com" not in base_url
+
+
 def api_key_for(provider: dict[str, Any]) -> str:
     env_name = provider.get("api_key_env")
     if not env_name:
@@ -1018,9 +1031,10 @@ def call_openai_compatible(
     payload: dict[str, Any] = {
         "model": model.get("model"),
         "messages": messages,
-        "temperature": options.get("temperature", 0.2),
         max_tokens_parameter(provider, model): options.get("max_tokens", 1800),
     }
+    if supports_custom_temperature(provider, model):
+        payload["temperature"] = options.get("temperature", 0.2)
     payload.update(provider.get("extra_body", {}))
     payload.update(model.get("extra_body", {}))
 
