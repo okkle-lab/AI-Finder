@@ -59,10 +59,11 @@ if ! "${VENV_DIR}/bin/python" - <<'PY' >/dev/null 2>&1
 import PyInstaller
 import openpyxl
 import PIL
+import certifi
 PY
 then
   "${VENV_DIR}/bin/python" -m pip install --upgrade pip setuptools wheel
-  "${VENV_DIR}/bin/python" -m pip install --upgrade pyinstaller openpyxl pillow
+  "${VENV_DIR}/bin/python" -m pip install --upgrade pyinstaller openpyxl pillow certifi
 fi
 
 echo "Building bundled runner..."

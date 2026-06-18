@@ -144,7 +144,7 @@ final class RunnerViewModel: ObservableObject {
     @Published var includeImages = false
     @Published var dryRun = false
     @Published var parallelProducts = false
-    @Published var maxTokens = 200
+    @Published var maxTokens = 1000
     @Published var openRouterAPIKey: String = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? ""
     @Published var openAIAPIKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
     @Published var isRunning = false
@@ -262,11 +262,13 @@ final class RunnerViewModel: ObservableObject {
 
     private func processEnvironment() -> [String: String] {
         var environment = ProcessInfo.processInfo.environment
-        if !openRouterAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            environment["OPENROUTER_API_KEY"] = openRouterAPIKey
+        let openRouterKey = openRouterAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let openAIKey = openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !openRouterKey.isEmpty {
+            environment["OPENROUTER_API_KEY"] = openRouterKey
         }
-        if !openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            environment["OPENAI_API_KEY"] = openAIAPIKey
+        if !openAIKey.isEmpty {
+            environment["OPENAI_API_KEY"] = openAIKey
         }
         return environment
     }
