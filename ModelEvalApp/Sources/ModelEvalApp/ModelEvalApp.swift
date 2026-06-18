@@ -7,9 +7,39 @@ struct ModelEvalApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .frame(minWidth: 900, minHeight: 620)
+                .frame(minWidth: 1120, minHeight: 760)
         }
+        .defaultSize(width: 1180, height: 780)
         .windowStyle(.titleBar)
+        .commands {
+            CommandGroup(replacing: .pasteboard) {
+                Button("Cut") {
+                    sendEditCommand(#selector(NSText.cut(_:)))
+                }
+                .keyboardShortcut("x")
+
+                Button("Copy") {
+                    sendEditCommand(#selector(NSText.copy(_:)))
+                }
+                .keyboardShortcut("c")
+
+                Button("Paste") {
+                    sendEditCommand(#selector(NSText.paste(_:)))
+                }
+                .keyboardShortcut("v")
+
+                Divider()
+
+                Button("Select All") {
+                    sendEditCommand(#selector(NSResponder.selectAll(_:)))
+                }
+                .keyboardShortcut("a")
+            }
+        }
+    }
+
+    private func sendEditCommand(_ selector: Selector) {
+        NSApplication.shared.sendAction(selector, to: nil, from: nil)
     }
 }
 
