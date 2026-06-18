@@ -279,6 +279,20 @@ def looks_like_audio_model(product: str, name: str, model_id: str) -> bool:
     )
 
 
+def looks_like_openai_text_model(product: str, name: str, model_id: str) -> bool:
+    haystack = normalized(" ".join([product, name, model_id]))
+    return (
+        "chatgpt" in haystack
+        or "openai" in haystack
+        or model_id.startswith(("gpt-", "o1", "o3", "o4"))
+        or model_id.startswith("openai/")
+    )
+
+
+def openai_api_model_id(model_id: str) -> str:
+    return model_id.removeprefix("openai/")
+
+
 def unique_key(base: str, used: set[str]) -> str:
     root = safe_filename(base).lower() or "model"
     key = root
@@ -319,6 +333,36 @@ def first_non_empty_cell(ws: Any, row_number: int, columns: Iterable[int]) -> st
     return ""
 
 
+def workbook_defaults_to_openai(
+    ws: Any,
+    header_row: int,
+    columns: dict[str, int],
+    direct_model_columns: list[int],
+    model_columns: list[int],
+) -> bool:
+    has_candidate = False
+    for row_number in range(header_row + 1, ws.max_row + 1):
+        provider = clean_text(model_cell(ws, row_number, columns, "provider"))
+        provider_type = clean_text(model_cell(ws, row_number, columns, "provider_type"))
+        capabilities_cell = model_cell(ws, row_number, columns, "capabilities")
+        if provider or provider_type or clean_text(capabilities_cell):
+            continue
+
+        direct_model_id = first_non_empty_cell(ws, row_number, direct_model_columns)
+        any_model_id = first_non_empty_cell(ws, row_number, model_columns)
+        model_id = direct_model_id or any_model_id
+        if not model_id:
+            continue
+
+        has_candidate = True
+        name = clean_text(model_cell(ws, row_number, columns, "name"))
+        product = clean_text(model_cell(ws, row_number, columns, "product"))
+        if not looks_like_openai_text_model(product, name, model_id):
+            return False
+
+    return has_candidate
+
+
 def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[str, Any]:
     wb = load_workbook(models_path, data_only=True)
     ws = wb[wb.sheetnames[0]]
@@ -328,12 +372,23 @@ def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[
     config["models"] = []
 
     model_columns = header_column_positions(ws, header_row, MODEL_HEADER_ALIASES["model"])
+    direct_model_columns = header_column_positions(ws, header_row, ["model_id_string"])
+    default_text_provider = (
+        "openai"
+        if workbook_defaults_to_openai(
+            ws, header_row, columns, direct_model_columns, model_columns
+        )
+        else "openrouter"
+    )
+
     used_keys: set[str] = set()
     for row_number in range(header_row + 1, ws.max_row + 1):
         provider = clean_text(model_cell(ws, row_number, columns, "provider"))
         provider_type = clean_text(model_cell(ws, row_number, columns, "provider_type"))
         capabilities_cell = model_cell(ws, row_number, columns, "capabilities")
-        model_id = clean_text(model_cell(ws, row_number, columns, "model"))
+        raw_model_id = clean_text(model_cell(ws, row_number, columns, "model"))
+        direct_model_id = first_non_empty_cell(ws, row_number, direct_model_columns)
+        model_id = raw_model_id
         if not model_id and (provider or provider_type or clean_text(capabilities_cell)):
             model_id = first_non_empty_cell(ws, row_number, model_columns)
         if not model_id:
@@ -346,7 +401,11 @@ def read_model_workbook(models_path: Path, base_config: dict[str, Any]) -> dict[
         else:
             capabilities = parse_capabilities(capabilities_cell, provider, provider_type)
         if not provider:
-            provider = "openai_images" if "image" in capabilities else "openrouter"
+            provider = "openai_images" if "image" in capabilities else default_text_provider
+        if provider == "openai" and direct_model_id:
+            model_id = direct_model_id
+        if provider == "openai":
+            model_id = openai_api_model_id(model_id)
 
         base_url = clean_text(model_cell(ws, row_number, columns, "base_url"))
         api_key_env = clean_text(model_cell(ws, row_number, columns, "api_key_env"))

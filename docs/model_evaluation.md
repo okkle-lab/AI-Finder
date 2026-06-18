@@ -84,6 +84,13 @@ The first sheet should contain at least:
 | `API Key Env` | No | Optional API-key environment variable override. |
 | `Provider Type` | No | Optional: `openai_compatible` or `openai_image_generation`. |
 
+For mixed model sheets, blank text-model providers default to OpenRouter. If the
+model sheet contains only ChatGPT/OpenAI text rows and no explicit provider
+settings, the runner defaults those rows to direct OpenAI and uses
+`model_id_string` values such as `gpt-5.5`, so only `OPENAI_API_KEY` is needed.
+You can always make routing explicit with `Provider=openai` or
+`Provider=openrouter`.
+
 Models are routed by `Capabilities`:
 
 - `["text"]` models run the text prompts.

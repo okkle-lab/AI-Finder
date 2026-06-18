@@ -44,6 +44,10 @@ Inputs:
 - Image generation: off by default. Turn on Image Generation and paste an
   OpenAI API key to run the bundled `gpt-image-2` image model row.
 
+If your model spreadsheet contains only ChatGPT/OpenAI text rows and no
+explicit provider settings, the runner uses direct OpenAI and only needs the
+OpenAI key. Mixed-provider sheets keep blank text providers on OpenRouter.
+
 Use Dry Run to validate both spreadsheets without making API calls or needing a key.
 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
