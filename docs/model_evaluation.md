@@ -33,7 +33,7 @@ can launch `dist/Model Eval Runner.app` directly, or share
 
 Default spreadsheets live in `ModelEvalApp/Defaults/`:
 
-- `Model Test Prompts for Automation.xlsx`
+- `Model_Test_Prompts_for_Automation.xlsx`
 - `AI_model_variants.xlsx`
 
 The SwiftUI app preselects those files on launch. To update the shipped
@@ -114,7 +114,7 @@ If you use a local OpenAI-compatible server that does not require authentication
 
 If OpenRouter returns HTTP 402 saying a request requires more credits or fewer
 `max_tokens`, lower the SwiftUI app's Max Tokens value or pass `--max-tokens`
-on the CLI. The app defaults to `1000`.
+on the CLI. The app defaults to `200`.
 
 If OpenAI or another provider returns HTTP 429, the account has hit a rate,
 usage, or budget limit. The runner preserves the provider's error message,
