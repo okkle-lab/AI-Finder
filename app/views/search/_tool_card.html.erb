@@ -47,12 +47,27 @@
 
   <% variants = tool.model_variants.sort_by { |v| [v.position, v.id] } %>
   <% if variants.any? %>
-    <p class="card-models">
-      <span class="card-models-label">Models:</span>
-      <% variants.each do |variant| %>
-        <span class="model-chip" title="<%= variant.chip_title %>"><%= variant.name %></span>
-      <% end %>
-    </p>
+    <% dim_fields = dimension ? Rubric.fields_for(dimension) : [] %>
+    <% scored_variants = dim_fields.any? ? variants.filter_map { |v| s = variant_category_score(v, dim_fields); [v, s] if s }.sort_by { |_, s| -s } : [] %>
+    <% if scored_variants.any? %>
+      <div class="card-best-model">
+        <span class="card-bm-label">Best model</span>
+        <% scored_variants.each do |variant, score| %>
+          <span class="card-bm-chip">
+            <span class="card-bm-dot" style="background: <%= score_color(score) %>"></span>
+            <%= variant.name %>
+            <span class="card-bm-score" style="color: <%= score_color(score) %>"><%= score_number(score) %></span>
+          </span>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="card-models">
+        <span class="card-models-label">Models:</span>
+        <% variants.each do |variant| %>
+          <span class="model-chip" title="<%= variant.chip_title %>"><%= variant.name %></span>
+        <% end %>
+      </p>
+    <% end %>
   <% end %>
 
   <footer class="card-foot">

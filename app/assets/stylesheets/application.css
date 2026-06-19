@@ -348,6 +348,23 @@ a:hover { text-decoration: underline; }
   background: #f3f4f6; border: 1px solid var(--line); border-radius: 999px;
   padding: 0.1rem 0.6rem; color: #374151; cursor: help;
 }
+/* ---- per-model scored chips on search result cards ---- */
+.card-best-model {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;
+  padding: 0.55rem 0 0.1rem; border-top: 1px solid var(--line); margin-top: 0.3rem; font-size: 0.82rem;
+}
+.card-bm-label {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); white-space: nowrap; margin-right: 0.1rem;
+}
+.card-bm-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 0.18rem 0.55rem 0.18rem 0.4rem; color: var(--ink);
+}
+.card-bm-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.card-bm-score { font-weight: 700; font-size: 0.8rem; }
+
 .card-foot { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
 .card-link { font-weight: 600; }
 .card-review {
