@@ -188,7 +188,7 @@ class Rubric
       category: "Enterprise",
       level: :tool,
       group: :product,
-      intent_words: %w[enterprise admin governance compliance deployment sso scim audit sla support company team],
+      intent_words: %w[enterprise admin governance compliance deployment sso scim audit sla support company],
       intent_phrases: ["enterprise controls", "security certifications", "admin controls", "deployment flexibility", "support sla"]
     },
     "translation" => {

@@ -3,13 +3,12 @@
 # database, open the browser, then run the Rails server. Stop with Ctrl-C.
 set -euo pipefail
 
-# Load rbenv so the correct Ruby version is used instead of system Ruby.
-export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:/opt/homebrew/bin:$PATH"
-if command -v rbenv >/dev/null 2>&1; then eval "$(rbenv init -)"; fi
-
 # This script lives in bin/, so the app root is one level up.
 APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$APP_ROOT"
+
+# Load a compatible Ruby and matching Bundler before any Rails commands run.
+source "$APP_ROOT/bin/ruby-env"
 
 PORT="${PORT:-3000}"
 URL="http://localhost:${PORT}"
@@ -25,11 +24,6 @@ server_responding() {
 echo "== AI Finder =="
 echo "Working in: $APP_ROOT"
 
-if ! command -v bundle >/dev/null 2>&1; then
-  echo "Bundler not found — install Ruby and Bundler first (see README)." >&2
-  exit 1
-fi
-
 echo "== Checking dependencies =="
 bundle check >/dev/null 2>&1 || bundle install
 
@@ -42,8 +36,66 @@ if server_responding; then
   exit 0
 fi
 
+legacy_schema_detected() {
+  bundle exec rails runner '
+    conn = ActiveRecord::Base.connection
+    unless conn.table_exists?("schema_migrations")
+      exit 1
+    end
+
+    current_versions = Dir[Rails.root.join("db/migrate/*.rb")].map { |path| File.basename(path).split("_", 2).first }
+    recorded_versions = conn.select_values("select version from schema_migrations")
+    stale_versions = recorded_versions - current_versions
+    unapplied_versions = current_versions - recorded_versions
+
+    exit(stale_versions.any? && unapplied_versions.any? ? 0 : 1)
+  ' >/dev/null 2>&1
+}
+
+rebuild_development_database() {
+  local database backup
+
+  database="$(bundle exec rails runner 'print ActiveRecord::Base.connection.current_database')"
+  backup="$APP_ROOT/tmp/backups/${database}_$(date +%Y%m%d_%H%M%S).sql"
+
+  if ! command -v pg_dump >/dev/null 2>&1 || ! command -v dropdb >/dev/null 2>&1 || ! command -v createdb >/dev/null 2>&1; then
+    echo "PostgreSQL command-line tools were not found, so the stale database was not rebuilt automatically." >&2
+    echo "Install PostgreSQL command-line tools, then run this launcher again." >&2
+    exit 1
+  fi
+
+  mkdir -p "$APP_ROOT/tmp/backups"
+  pg_dump "$database" > "$backup"
+  echo "== Backed up old development database to $backup =="
+
+  dropdb --if-exists "$database"
+  createdb "$database"
+  bundle exec rails db:schema:load db:seed
+}
+
+prepare_database() {
+  local prepare_log
+
+  prepare_log="$(mktemp "${TMPDIR:-/tmp}/ai-finder-db-prepare.XXXXXX")"
+  if bundle exec rails db:prepare >"$prepare_log" 2>&1; then
+    rm -f "$prepare_log"
+    return
+  fi
+
+  cat "$prepare_log"
+  if grep -q "PG::DuplicateTable" "$prepare_log" && legacy_schema_detected; then
+    echo "== Found an older local database schema; backing it up and rebuilding =="
+    rebuild_development_database
+    rm -f "$prepare_log"
+    return
+  fi
+
+  rm -f "$prepare_log"
+  exit 1
+}
+
 echo "== Preparing database =="
-bundle exec rails db:prepare
+prepare_database
 
 # Once the server is accepting connections, open the browser.
 (

@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Shared Ruby/Bundler setup for shell entrypoints. Source this file from the
+# app root before running bundle/rails commands.
+
+export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:/opt/homebrew/bin:$PATH"
+
+required_ruby="$(tr -d '[:space:]' < .ruby-version 2>/dev/null || true)"
+required_ruby="${required_ruby:-3.3.11}"
+required_major="${required_ruby%%.*}"
+required_rest="${required_ruby#*.}"
+required_minor="${required_rest%%.*}"
+
+compatible_ruby_version() {
+  rbenv versions --bare |
+    awk -F. -v major="$required_major" -v minor="$required_minor" '
+      $1 == major && $2 == minor && $3 ~ /^[0-9]+$/ {
+        if (($3 + 0) > patch) {
+          patch = $3 + 0
+          best = $0
+        }
+      }
+      END { print best }
+    '
+}
+
+print_ruby_help() {
+  cat >&2 <<MSG
+
+AI Finder needs Ruby ${required_major}.${required_minor}.x.
+
+Install the pinned version with:
+  rbenv install ${required_ruby}
+  rbenv local ${required_ruby}
+
+Then run the launcher again.
+MSG
+}
+
+if command -v rbenv >/dev/null 2>&1; then
+  if rbenv_init="$(rbenv init - bash 2>/dev/null)"; then
+    eval "$rbenv_init"
+  else
+    eval "$(rbenv init -)"
+  fi
+
+  if ! rbenv versions --bare | grep -Fx "$required_ruby" >/dev/null 2>&1; then
+    compatible_ruby="$(compatible_ruby_version)"
+    if [ -n "$compatible_ruby" ]; then
+      export RBENV_VERSION="$compatible_ruby"
+      echo "== Ruby ${required_ruby} is not installed; using compatible Ruby ${compatible_ruby} =="
+    else
+      echo "Ruby ${required_ruby} is not installed, and no compatible Ruby ${required_major}.${required_minor}.x was found." >&2
+      print_ruby_help
+      exit 1
+    fi
+  fi
+elif command -v ruby >/dev/null 2>&1; then
+  if ! ruby -e "exit RUBY_VERSION.start_with?('${required_major}.${required_minor}.') ? 0 : 1"; then
+    echo "Found $(ruby -v), but AI Finder needs Ruby ${required_major}.${required_minor}.x." >&2
+    print_ruby_help
+    exit 1
+  fi
+else
+  echo "Ruby was not found." >&2
+  print_ruby_help
+  exit 1
+fi
+
+locked_bundler="$(awk '
+  /^BUNDLED WITH$/ {
+    getline
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+    print
+    exit
+  }
+' Gemfile.lock)"
+
+if [ -n "$locked_bundler" ] && ! gem list bundler -i -v "$locked_bundler" >/dev/null 2>&1; then
+  echo "== Installing Bundler ${locked_bundler} =="
+  gem install bundler -v "$locked_bundler" --conservative
+  command -v rbenv >/dev/null 2>&1 && rbenv rehash || true
+fi
+
+if ! command -v bundle >/dev/null 2>&1; then
+  echo "Bundler not found. Install Ruby and Bundler first, then run the launcher again." >&2
+  exit 1
+fi
