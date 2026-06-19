@@ -35,8 +35,8 @@ class Tool < ApplicationRecord
     "Writing",
     "Research",
     "Coding",
-    "Accuracy & trustworthiness",
-    "Image generation",
+    "Accuracy & Trustworthiness",
+    "Image Generation",
     "Meetings",
     "Translation"
   ].freeze
@@ -44,11 +44,11 @@ class Tool < ApplicationRecord
     "Writing" => "Long-form writing",
     "Research" => "Research-heavy work",
     "Coding" => "Coding",
-    "Accuracy & trustworthiness" => "High-stakes accuracy",
+    "Accuracy & Trustworthiness" => "High-stakes accuracy",
     "Ease of use" => "Beginners",
-    "Image generation" => "Image generation",
+    "Image Generation" => "Image generation",
     "Meetings" => "Meetings",
-    "Privacy & data safety" => "Privacy-sensitive work",
+    "Privacy & Data Safety" => "Privacy-sensitive work",
     "Enterprise" => "Enterprise governance",
     "Translation" => "Translation"
   }.freeze

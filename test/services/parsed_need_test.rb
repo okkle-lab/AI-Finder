@@ -36,4 +36,10 @@ class ParsedNeedTest < ActiveSupport::TestCase
 
     assert_nil need.priority_dimension
   end
+
+  test "keeps short model ids with digits as searchable keywords" do
+    need = ParsedNeed.from_keywords("o1")
+
+    assert_equal ["o1"], need.keywords
+  end
 end

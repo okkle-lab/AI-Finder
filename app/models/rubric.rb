@@ -1,11 +1,15 @@
 class Rubric
-  # Rubric v3. Composite scores average into the overall score equally. Atomic
-  # scores use the weights defined inside each composite category.
+  # Rubric v3. This category block is generated from
+  # PromptGradeApp/Defaults/Model_Testing_Rubric.xlsx. Run
+  # `python3 script/sync_rubric_from_excel.py --write` after editing the workbook.
+  # Atomic scores use the weights defined inside each composite category; category
+  # composites use `overall_weight` when they roll into the final verdict.
   CATEGORIES = {
     "Writing" => {
       key: "writing",
       icon: "pencil",
       description: "Drafting emails, posts and reports — how well it writes from a brief, edits your work, and how little prompting it needs.",
+      overall_weight: 1.00,
       fields: {
         write_edit_score: 0.50,
         summarisation_score: 0.30,
@@ -16,6 +20,7 @@ class Rubric
       key: "research",
       icon: "search",
       description: "Finding and synthesising information — fact-checking accuracy, source quality, and how often it makes things up.",
+      overall_weight: 1.00,
       fields: {
         research_fact_checking_score: 0.35,
         source_quality_score: 0.25,
@@ -27,6 +32,7 @@ class Rubric
       key: "coding",
       icon: "code",
       description: "Writing, fixing and running code — accuracy on real tasks, debugging ability, and autonomous multi-file editing.",
+      overall_weight: 1.00,
       fields: {
         coding_speed_score: 0.25,
         coding_accuracy_score: 0.35,
@@ -38,6 +44,7 @@ class Rubric
       key: "accuracy",
       icon: "file-text",
       description: "How reliably correct the answers are — hallucination rate, logical reasoning quality, and consistency across repeated runs.",
+      overall_weight: 1.00,
       fields: {
         hallucination_resistance_score: 0.30,
         source_quality_score: 0.20,
@@ -49,6 +56,7 @@ class Rubric
       key: "ease_of_use",
       icon: "bolt",
       description: "How much effort it takes to get a good result — interface quality, how simple your prompts need to be, and learning curve.",
+      overall_weight: 1.00,
       fields: {
         prompt_effort_score: 0.40,
         interface_score: 0.40,
@@ -59,6 +67,7 @@ class Rubric
       key: "image",
       icon: "photo",
       description: "Creating images from text prompts — visual quality, how closely it follows your description, and text rendering inside images.",
+      overall_weight: 1.00,
       fields: {
         image_quality_score: 0.35,
         prompt_adherence_score: 0.25,
@@ -70,6 +79,7 @@ class Rubric
       key: "meetings",
       icon: "microphone",
       description: "Recording, transcribing and summarising meetings — accuracy of transcripts, quality of summaries, and action-item extraction.",
+      overall_weight: 1.00,
       fields: {
         transcription_score: 0.35,
         meeting_summary_score: 0.35,
@@ -77,10 +87,21 @@ class Rubric
         integration_score: 0.10
       }
     },
+    "Translation" => {
+      key: "translation",
+      icon: "language",
+      description: "Converting text between languages — how accurate the output is across language pairs and how fast results come back.",
+      overall_weight: 1.00,
+      fields: {
+        translation_accuracy_score: 0.70,
+        translation_speed_score: 0.30
+      }
+    },
     "Privacy & data safety" => {
       key: "privacy",
       icon: "shield-lock",
       description: "What happens to your data — how long it's retained, whether it's used for training, and what security certifications the provider holds.",
+      overall_weight: 1.00,
       fields: {
         data_retention_score: 0.30,
         training_on_user_data_score: 0.30,
@@ -92,20 +113,12 @@ class Rubric
       key: "enterprise",
       icon: "building",
       description: "Admin and deployment features — SSO, audit logs, role-based access, flexible hosting options, and SLA-backed support.",
+      overall_weight: 1.00,
       fields: {
         enterprise_controls_score: 0.35,
         security_certifications_score: 0.25,
         deployment_flexibility_score: 0.20,
         support_sla_score: 0.20
-      }
-    },
-    "Translation" => {
-      key: "translation",
-      icon: "language",
-      description: "Converting text between languages — how accurate the output is across language pairs and how fast results come back.",
-      fields: {
-        translation_accuracy_score: 0.70,
-        translation_speed_score: 0.30
       }
     }
   }.freeze
@@ -373,6 +386,10 @@ class Rubric
 
   def self.weight_for(category, field)
     CATEGORIES.dig(category, :fields, field.to_sym) || 1.0
+  end
+
+  def self.overall_weight_for(category)
+    CATEGORIES.dig(category, :overall_weight) || 1.0
   end
 
   def self.label_for(dimension)

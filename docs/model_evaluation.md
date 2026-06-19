@@ -48,11 +48,13 @@ Default spreadsheets live in `ModelEvalApp/Defaults/`:
 
 - `Model_Test_Prompts_for_Automation.xlsx`
 - `AI_model_variants.xlsx`
+- `Model_Testing_Rubric.xlsx`
 - `model_variants.csv`
 
 The SwiftUI app preselects those files on launch. To update the shipped
 defaults, replace the files in `ModelEvalApp/Defaults/` and rerun
-`./package_app.sh`.
+`./package_app.sh`. The package script refreshes the bundled rubric from
+`PromptGradeApp/Defaults/Model_Testing_Rubric.xlsx`.
 
 The app version is stored in `ModelEvalApp/VERSION`. The package script writes
 that version into the macOS bundle metadata and produces a versioned zip
@@ -62,10 +64,18 @@ Drop in:
 
 - a prompt spreadsheet
 - a model spreadsheet
+- an optional rubric workbook used as a preflight `Test ID` coverage check
 
-Choose an output folder and press Run. Use Dry Run to validate the spreadsheets
-without API calls. Skip Already Scored is on by default in the app; it uses
-`model_variants.csv` to remove model keys that already have website scores.
+Choose an output folder and press Run. Use Dry Run to validate the spreadsheets,
+rubric coverage, and result reuse plan without API calls. Reuse Matching
+Results is on by default in the app; it scans previous model-test output
+folders and reuses successful rows when the same model, `Test ID`, prompt
+text/input material, and rubric row were already tested. Only Changed Prompts
+is also on by default, so the runner only calls the API for prompt `Test ID`
+values whose prompt/input content is new or changed compared with previous
+model-test workbooks. Turn that off when you intentionally want to backfill old
+missing or errored pairs. The older Skip Already Scored mode is still available
+as a fallback when result reuse is off.
 
 Cloud model providers still require an API key. With the default model spreadsheet path, the app expects one OpenRouter key for text models. Image models usually need an OpenAI key unless your model spreadsheet points them somewhere else. GitHub Models rows need a GitHub token with `models:read` in `GITHUB_MODELS_TOKEN`.
 Image generation is supported but off by default in the SwiftUI app to avoid
@@ -179,8 +189,18 @@ Use a dry run first. It shows which workbook rows will be automated and which wi
 python3 script/model_eval_runner.py \
   --workbook "/path/to/prompts.xlsx" \
   --models-workbook "/path/to/models.xlsx" \
+  --rubric-workbook "/path/to/rubric.xlsx" \
+  --reuse-matching-results \
+  --only-changed-tests \
+  --history-dir "/path/to/previous/model_tests" \
   --dry-run
 ```
+
+Result reuse writes `prompt_fingerprint`, `rubric_fingerprint`, and
+`benchmark_fingerprint` metadata into new `responses.csv`, `responses.jsonl`,
+and `Run Results` rows. Older runs created before this metadata existed can
+still be reused when their adjacent `model_test_results.xlsx` contains matching
+prompt text for the same `Test ID`; new runs use the explicit fingerprints.
 
 ## Run responses only
 

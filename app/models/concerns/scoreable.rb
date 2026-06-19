@@ -51,9 +51,14 @@ module Scoreable
   end
 
   # Overall verdict: average subcategory scores within each rubric category,
-  # then average those category scores. nil = not yet rated.
+  # then combine those category scores with the rubric's category weights.
+  # nil = not yet rated.
   def verdict_with(extra_scores: {})
-    scores = category_scores(extra_scores:).values
-    scores.any? ? scores.sum.to_f / scores.size : nil
+    scores = category_scores(extra_scores:)
+    return nil if scores.empty?
+
+    weighted_sum = scores.sum { |category, score| score.to_f * Rubric.overall_weight_for(category) }
+    weight_sum = scores.sum { |category, _score| Rubric.overall_weight_for(category) }
+    weighted_sum / weight_sum
   end
 end
