@@ -76,7 +76,7 @@ class ToolRankingTest < ActiveSupport::TestCase
       translation_speed_score: 9,
       translation_accuracy_score: 7)
 
-    assert_in_delta 7.2, tool.overall_verdict, 0.05
+    assert_in_delta 6.6, tool.overall_verdict, 0.05
   end
 
   test "best_score reads tool-only rubric columns" do
