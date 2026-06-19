@@ -106,7 +106,7 @@
           <summary class="score-category-summary" style="grid-template-columns: <%= grid_template %>">
             <span class="score-category-name"><%= category %></span>
             <% variants.each do |variant| %>
-              <%= colored_score(variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category)) %>
+              <%= colored_score(variant.scored? ? variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category) : nil) %>
             <% end %>
           </summary>
           <div class="scores-scroll score-category-details">
@@ -124,7 +124,7 @@
                   <tr>
                     <th class="models-name" scope="row"><%= Rubric::SUBCATEGORY_FIELDS.key(field) || field.to_s.humanize %></th>
                     <% variants.each do |variant| %>
-                      <td><%= colored_score(variant.category_score([field], extra_scores: tool.rubric_field_values, category: category)) %></td>
+                      <td><%= colored_score(variant.scored? ? variant.category_score([field], extra_scores: tool.rubric_field_values, category: category) : nil) %></td>
                     <% end %>
                   </tr>
                 <% end %>

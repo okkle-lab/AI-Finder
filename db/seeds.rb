@@ -37,6 +37,8 @@ def score_attributes_from(row, fields, model_class)
     attrs[field] =
       if row.headers.include?(key) && row[key].present?
         row[key]
+      elsif row.headers.include?(key) && model_class == ModelVariant
+        nil
       else
         placeholder_score(row, key)
       end

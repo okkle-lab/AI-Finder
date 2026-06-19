@@ -1781,6 +1781,14 @@ def website_field_tests(headers: list[str]) -> dict[str, list[str]]:
     return mapping
 
 
+def website_score_fields(headers: list[str]) -> list[str]:
+    return [
+        header
+        for header in headers
+        if header.startswith("score_") or header.endswith("_score")
+    ]
+
+
 def weighted_consensus_for_tests(
     model_key: str,
     test_ids: list[str],
@@ -1807,6 +1815,7 @@ def write_website_upload_files(
     rubric_entries: list[RubricEntry],
     outputs: list[TestOutput],
     include_self_judging: bool,
+    skipped: list[SkippedOutput] | None = None,
 ) -> tuple[int, int]:
     headers, seed_rows = read_csv_dicts(seed_csv_path)
     output_rows = [dict(row) for row in seed_rows]
@@ -1815,6 +1824,12 @@ def write_website_upload_files(
     test_info_by_id = {clean_text(test["test_id"]): test for test in test_infos}
     consensus = consensus_scores(rows, include_self_judging=include_self_judging)
     field_tests = website_field_tests(headers)
+    score_fields = website_score_fields(headers)
+    skipped_source_keys = {
+        clean_text(skipped_output.source_model_key)
+        for skipped_output in (skipped or [])
+        if clean_text(skipped_output.source_model_key)
+    }
 
     sources_by_key = {model["key"]: model for model in model_infos}
     sources_by_name: dict[str, list[dict[str, str]]] = {}
@@ -1835,6 +1850,10 @@ def write_website_upload_files(
                 if not model_id:
                     seed_row["model_id_string"] = source["key"]
         if not source:
+            if model_id and model_id in skipped_source_keys:
+                for field in score_fields:
+                    seed_row[field] = ""
+                updated += 1
             continue
 
         matched += 1
@@ -2340,6 +2359,7 @@ def main(argv: list[str]) -> int:
             rubric_entries=rubric_entries,
             outputs=outputs,
             include_self_judging=args.include_self_judging,
+            skipped=skipped,
         )
         print(f"Wrote {website_upload_csv}")
         print(f"Wrote {website_audit_csv}")
