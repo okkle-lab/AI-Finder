@@ -73,7 +73,7 @@ class Tool < ApplicationRecord
   end
 
   def best_model_variant
-    model_variants.max_by { |variant| variant.verdict || -Float::INFINITY }
+    model_variants.select(&:scored?).max_by { |variant| variant.verdict || -Float::INFINITY }
   end
 
   def verdict_model_name

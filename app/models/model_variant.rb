@@ -11,8 +11,14 @@ class ModelVariant < ApplicationRecord
 
   scope :ordered, -> { order(:position, :id) }
 
+  def scored?
+    output_quality.present?
+  end
+
   # This model's verdict, using parent tool scores for tool-level categories.
   def verdict
+    return nil unless scored?
+
     verdict_with(extra_scores: tool.rubric_field_values)
   end
 
