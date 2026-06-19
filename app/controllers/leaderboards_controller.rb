@@ -3,7 +3,8 @@ class LeaderboardsController < ApplicationController
   def index
     @categories = Rubric::CATEGORIES.map do |name, config|
       ranked = ranked_tools(name, config[:fields].keys)
-      { name:, key: config[:key], leader: ranked.first }
+      cat_model = Category.find_by(slug: config[:key])
+      { name:, key: config[:key], icon: cat_model&.icon, leader: ranked.first }
     end
   end
 

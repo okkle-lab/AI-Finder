@@ -9,6 +9,9 @@
 <div class="lb-grid">
   <% @categories.each do |cat| %>
     <%= link_to leaderboard_path(cat[:key]), class: "lb-card" do %>
+      <div class="lb-card-icon" style="--icon-tint: <%= tool_monogram_color(cat[:name]) %>">
+        <%= icon(cat[:icon].presence || "sparkles", size: 26) %>
+      </div>
       <div class="lb-card-head">
         <span class="lb-card-name"><%= cat[:name] %></span>
         <% if cat[:leader] %>

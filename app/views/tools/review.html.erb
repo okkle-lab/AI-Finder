@@ -16,6 +16,49 @@
   <%# The complete score overview — every criterion and the scores assigned %>
   <%= render "scorecard", tool: @tool, detailed: true %>
 
+  <%# Evaluation results — the actual test outputs and reasoning behind each score %>
+  <section class="eval-results">
+    <h2 class="specs-title">How we scored this</h2>
+    <p class="eval-intro">Cross-judged by 2 independent AI models, tested on real-world tasks. Below is what we tested and why we scored it this way.</p>
+
+    <% if @tool.scored? %>
+      <div class="eval-grid">
+        <% Rubric::DIMENSIONS.each do |key, dimension| %>
+          <% score = @tool.send("#{key}_score") %>
+          <% next unless score %>
+          <div class="eval-card">
+            <div class="eval-card-head">
+              <span class="eval-ic"><%= icon(dimension[:icon].presence || "sparkles", size: 20) %></span>
+              <div>
+                <h3 class="eval-card-title"><%= dimension[:label] %></h3>
+                <p class="eval-card-desc"><%= Rubric::CRITERION_MEASURES[key.to_sym] %></p>
+              </div>
+              <span class="eval-score"><%= colored_score(score) %></span>
+            </div>
+            <div class="eval-card-body">
+              <div class="eval-test">
+                <p class="eval-label">What we tested</p>
+                <p class="eval-placeholder">Test prompt and task will appear here as evals complete.</p>
+              </div>
+              <div class="eval-result">
+                <p class="eval-label">The result</p>
+                <p class="eval-placeholder">AI's actual output will appear here.</p>
+              </div>
+              <div class="eval-reasoning">
+                <p class="eval-label">Why this score</p>
+                <p class="eval-placeholder">Our scoring reasoning will appear here.</p>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="eval-empty">
+        <p class="eval-placeholder">Evaluation in progress. Full test results and scoring details will appear here once testing is complete.</p>
+      </div>
+    <% end %>
+  </section>
+
   <% variants = @tool.model_variants.ordered %>
 
   <% if variants.any? %>

@@ -24,25 +24,6 @@
     <strong><%= @stats[:models] %> models</strong> across <strong><%= @stats[:categories] %> categories</strong>. No sponsored rankings.</p>
 </section>
 
-<% if @top_rated.any? %>
-  <section class="home-section">
-    <div class="section-head">
-      <h2 class="panel-title">Top rated</h2>
-      <%= link_to "All leaderboards →", leaderboards_path, class: "section-all" %>
-    </div>
-    <ol class="top-list">
-      <% @top_rated.each_with_index do |(tool, score), i| %>
-        <li class="top-row">
-          <span class="top-rank"><%= i + 1 %></span>
-          <%= link_to tool.name, tool_path(tool), class: "top-name" %>
-          <% if tool.provider.present? %><span class="top-prov"><%= tool.provider %></span><% end %>
-          <%= colored_score(score, css_class: "top-score") %>
-        </li>
-      <% end %>
-    </ol>
-  </section>
-<% end %>
-
 <section class="home-section">
   <h2 class="panel-title">Browse by task</h2>
   <div class="tile-grid">
