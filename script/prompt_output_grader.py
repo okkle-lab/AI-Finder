@@ -14,6 +14,7 @@ import threading
 import time
 import traceback
 import zipfile
+from collections import Counter
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
@@ -2136,12 +2137,22 @@ def completed_grade_keys(
 def filter_scored_source_outputs(
     outputs: list[TestOutput],
     scored_model_keys: dict[str, list[str]],
+    field_tests: dict[str, list[str]],
 ) -> tuple[list[TestOutput], list[SkippedOutput]]:
+    covered_test_ids_by_model: dict[str, set[str]] = {}
+    for source_model_key, scored_fields in scored_model_keys.items():
+        covered_test_ids_by_model[source_model_key] = {
+            test_id
+            for field in scored_fields
+            for test_id in field_tests.get(field, [])
+        }
+
     selected: list[TestOutput] = []
     skipped: list[SkippedOutput] = []
     for output in outputs:
         source_model_key = clean_text(output.source_model_key)
-        if source_model_key and source_model_key in scored_model_keys:
+        test_id = clean_text(output.test_id)
+        if source_model_key and test_id in covered_test_ids_by_model.get(source_model_key, set()):
             skipped.append(
                 SkippedOutput(
                     output.row_number,
@@ -2200,6 +2211,11 @@ def print_plan(
     ]
     print(f"Outputs without matching rubric: {len(missing_rubric)}")
     print(f"Skipped outputs: {len(skipped)}")
+    if skipped:
+        print("Skipped output reasons:")
+        reason_counts = Counter(skipped_output.reason for skipped_output in skipped)
+        for reason, count in reason_counts.most_common():
+            print(f"  - {reason}: {count}")
     for skipped_output in skipped[:20]:
         print(
             f"  - row {skipped_output.row_number} "
@@ -2302,7 +2318,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--skip-scored-source-models",
         action="store_true",
-        help="Skip source model outputs whose model_id_string already has website scores.",
+        help=(
+            "Skip source model outputs only when existing website score fields cover "
+            "that source model and Test ID."
+        ),
     )
     parser.add_argument(
         "--rate-limit-skip-after",
@@ -2368,6 +2387,10 @@ def main(argv: list[str]) -> int:
         only_source_models=only_source_models,
         limit=args.limit,
     )
+    rubric_entries = read_rubric(rubric_workbook, args.rubric_sheet)
+    category_weights = read_category_weights(rubric_workbook)
+    source_outputs_before_score_skip = len(outputs)
+    scored_skipped: list[SkippedOutput] = []
     if args.skip_scored_source_models:
         if not website_seed_csv:
             raise ValueError("--skip-scored-source-models requires --website-seed-csv.")
@@ -2376,10 +2399,9 @@ def main(argv: list[str]) -> int:
         outputs, scored_skipped = filter_scored_source_outputs(
             outputs,
             read_scored_model_keys(website_seed_csv),
+            website_field_tests(read_csv_dicts(website_seed_csv)[0], rubric_entries),
         )
         skipped.extend(scored_skipped)
-    rubric_entries = read_rubric(rubric_workbook, args.rubric_sheet)
-    category_weights = read_category_weights(rubric_workbook)
     pairs, rubric_skipped = planned_pairs(
         models=models,
         outputs=outputs,
@@ -2405,6 +2427,16 @@ def main(argv: list[str]) -> int:
     if args.dry_run:
         return 0
     if not outputs:
+        if (
+            args.skip_scored_source_models
+            and source_outputs_before_score_skip > 0
+            and len(scored_skipped) == source_outputs_before_score_skip
+        ):
+            print(
+                "No unscored source outputs selected. All valid source outputs "
+                "already have website scores, so there is nothing to grade."
+            )
+            return 0
         raise ValueError("No source outputs selected.")
     if not pairs:
         raise ValueError("No grading calls planned. Check rubric coverage and filters.")

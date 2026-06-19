@@ -103,9 +103,13 @@ python3 script/prompt_output_grader.py --results-workbook "..." --models-workboo
 
 By default, source outputs without a matching rubric row are skipped. Use
 `--allow-missing-rubric` to grade them with generic output-quality guidance.
-Skipped already-scored source models are preserved in the website seed. Only
-source models with missing or errored outputs are treated as unavailable and
-cleared in the generated upload CSV.
+Already-scored source outputs are skipped per row: an output is skipped only
+when the existing website score fields cover that source model and `Test ID`.
+If the result workbook contains new rubric questions, those new rows are graded
+while old covered rows from the same model are skipped. Skipped already-scored
+source models are preserved in the website seed. Only source models with
+missing or errored outputs are treated as unavailable and cleared in the
+generated upload CSV.
 
 The `Model Scores` sheet is the second sheet in the generated workbook. It
 shows one row per tested/source model, each grader model's average score, and a
