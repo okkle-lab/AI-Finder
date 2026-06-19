@@ -206,7 +206,7 @@ a:hover { text-decoration: underline; }
     0 0 34px var(--hover-shadow-c),
     0 3px 8px rgba(26, 26, 46, 0.035);
 }
-.tile-icon { display: block; margin-bottom: 0.35rem; }
+.tile-icon { display: block; margin-bottom: 0.35rem; color: var(--icon-tint); }
 .tile-name { font-weight: 700; text-transform: capitalize; }
 .tile-sub { color: var(--muted); font-size: 0.85rem; }
 
@@ -838,12 +838,12 @@ a:hover { text-decoration: underline; }
     --muted: #a4adbb;
     --line: #323845;
     --bg: #15181f;
-    --accent: #82b4ff;
+    --accent: #9ec6ff;
     --accent-soft: #1c2942;
     --card: #1e222c;
     --card-surface: linear-gradient(180deg, #20242f 0%, #1e222c 62%, #1b1f28 100%);
     --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 18px rgba(0, 0, 0, 0.4);
-    --score-ink: #a9cdff;
+    --score-ink: #bcd6ff;
     --score-grad: linear-gradient(135deg, #3a66b8, #5e9bff);
     --score-pill-bg: linear-gradient(135deg, #1f2c47, #25395f);
     --score-pill-line: #3d5c8c;
@@ -880,11 +880,15 @@ a:hover { text-decoration: underline; }
   .concept-body, .learn-concept-blurb, .article-cta-text,
   .verdict-list ul, .lb-card-leader { color: var(--body); }
 
+  /* task-tile icons: lift the per-category tint toward white so dark
+     palette colours (esp. the navy #1a3a6e) stay visible on dark tiles */
+  .tile-icon { color: color-mix(in srgb, var(--icon-tint) 60%, #fff); }
+
   /* neutral chips / ranks / fills */
   .model-chip { background: #272c38; color: var(--body); }
   .lb-rank { background: #272c38; }
   .compare-rowhead { background: #1a1d24; }
-  .news-date, .hero-eyebrow, .pulse-tag { color: #82b4ff; }
+  .news-date, .hero-eyebrow, .pulse-tag { color: #9ec6ff; }
 
   /* near-white dividers */
   .top-row { border-bottom-color: #2a2f3a; }
