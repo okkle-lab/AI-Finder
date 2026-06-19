@@ -52,6 +52,8 @@ WEIGHT_HEADER_ALIASES = {
 class CategoryConfig:
     key: str
     overall_weight: float
+    icon: str = ""
+    description: str = ""
     fields: "OrderedDict[str, float]" = field(default_factory=OrderedDict)
 
 
@@ -173,7 +175,12 @@ class XlsxReader:
         return value
 
 
-def find_headers(rows: list[dict[int, Any]], aliases: dict[str, set[str]]) -> tuple[int, dict[str, int]]:
+def find_headers(
+    rows: list[dict[int, Any]],
+    aliases: dict[str, set[str]],
+    *,
+    any_of: tuple[set[str], ...] = (),
+) -> tuple[int, dict[str, int]]:
     for row_index, row in enumerate(rows):
         normalized = {normalize_header(value): index for index, value in row.items()}
         headers: dict[str, int] = {}
@@ -182,8 +189,8 @@ def find_headers(rows: list[dict[int, Any]], aliases: dict[str, set[str]]) -> tu
                 if name in normalized:
                     headers[field] = normalized[name]
                     break
-        if {"category", "weight"}.issubset(headers) and (
-            "website_field" in headers or "website_key" in headers
+        if {"category", "weight"}.issubset(headers) and all(
+            any(field in headers for field in field_group) for field_group in any_of
         ):
             return row_index, headers
     raise ValueError("Could not find the expected rubric header row.")
@@ -203,20 +210,28 @@ def read_category_weights(reader: XlsxReader) -> dict[str, tuple[float, str]]:
             continue
         weight = parse_weight(row.get(headers["weight"], ""))
         key = str(row.get(headers.get("website_key", 0), "") or "").strip()
-        weights[category] = (weight, key)
+        weights[normalize_header(category)] = (weight, key)
     return weights
 
 
-def read_rubric_categories(workbook_path: Path) -> "OrderedDict[str, CategoryConfig]":
+def read_rubric_categories(
+    workbook_path: Path,
+    criterion_fields: dict[str, str],
+) -> "OrderedDict[str, CategoryConfig]":
     with XlsxReader(workbook_path) as reader:
         rows = reader.sheet_rows("Scoring Guide")
-        header_index, headers = find_headers(rows, HEADER_ALIASES)
+        header_index, headers = find_headers(rows, HEADER_ALIASES, any_of=({"criterion", "website_field"},))
         category_weights = read_category_weights(reader)
 
         categories: "OrderedDict[str, CategoryConfig]" = OrderedDict()
         for row in rows[header_index + 1 :]:
             category = str(row.get(headers["category"], "") or "").strip()
-            field_name = str(row.get(headers["website_field"], "") or "").strip()
+            field_name = str(row.get(headers.get("website_field", 0), "") or "").strip()
+            derived_from_criterion = False
+            if not field_name:
+                criterion = str(row.get(headers.get("criterion", 0), "") or "").strip()
+                field_name = criterion_fields.get(normalize_header(criterion), "")
+                derived_from_criterion = bool(field_name)
             if not field_name:
                 continue
             criterion_weight = parse_weight(row.get(headers["weight"], ""))
@@ -225,12 +240,14 @@ def read_rubric_categories(workbook_path: Path) -> "OrderedDict[str, CategoryCon
             if not re.fullmatch(r"[a-z][a-z0-9_]*_score", field_name):
                 raise ValueError(f"Website field {field_name!r} is not a *_score field.")
 
-            overall_weight, key = category_weights.get(category, (1.0, ""))
+            overall_weight, key = category_weights.get(normalize_header(category), (1.0, ""))
             if not key:
                 key = snake_key(category)
             categories.setdefault(category, CategoryConfig(key=key, overall_weight=overall_weight))
             fields = categories[category].fields
             if field_name in fields:
+                if derived_from_criterion:
+                    continue
                 raise ValueError(f"{category}: duplicate website field {field_name!r}.")
             fields[field_name] = criterion_weight
 
@@ -239,12 +256,90 @@ def read_rubric_categories(workbook_path: Path) -> "OrderedDict[str, CategoryCon
     return categories
 
 
+def extract_existing_categories(ruby_source: str) -> "OrderedDict[str, CategoryConfig]":
+    pattern = re.compile(
+        r'    "([^"]+)" => \{\n(.*?)(?=\n    "[^"]+" => \{|\n  \}\.freeze)',
+        re.DOTALL,
+    )
+    categories: "OrderedDict[str, CategoryConfig]" = OrderedDict()
+    for name, body in pattern.findall(ruby_source):
+        key_match = re.search(r'^\s+key: "([^"]+)",', body, re.MULTILINE)
+        if not key_match:
+            continue
+        icon_match = re.search(r'^\s+icon: "([^"]+)",', body, re.MULTILINE)
+        description_match = re.search(r'^\s+description: "((?:\\"|[^"])*)",', body, re.MULTILINE)
+        weight_match = re.search(r"^\s+overall_weight: ([0-9.]+),", body, re.MULTILINE)
+        fields_match = re.search(r"^\s+fields: \{\n(.*?)\n      \}", body, re.MULTILINE | re.DOTALL)
+        fields: "OrderedDict[str, float]" = OrderedDict()
+        if fields_match:
+            for field_name, weight in re.findall(
+                r"^\s+([a-z][a-z0-9_]*_score): ([0-9.]+),?",
+                fields_match.group(1),
+                re.MULTILINE,
+            ):
+                fields[field_name] = float(weight)
+
+        categories[name] = CategoryConfig(
+            key=key_match.group(1),
+            icon=icon_match.group(1) if icon_match else "",
+            description=(description_match.group(1).replace('\\"', '"') if description_match else ""),
+            overall_weight=float(weight_match.group(1)) if weight_match else 1.0,
+            fields=fields,
+        )
+    return categories
+
+
+def extract_subcategory_fields(ruby_source: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for criterion, field_name in re.findall(r'"([^"]+)" => :([a-z][a-z0-9_]*_score)', ruby_source):
+        fields[normalize_header(criterion)] = field_name
+    return fields
+
+
+def merge_with_existing_categories(
+    generated: "OrderedDict[str, CategoryConfig]",
+    existing: "OrderedDict[str, CategoryConfig]",
+) -> "OrderedDict[str, CategoryConfig]":
+    generated_by_category = {
+        normalize_header(category): (category, config)
+        for category, config in generated.items()
+    }
+    merged: "OrderedDict[str, CategoryConfig]" = OrderedDict()
+
+    for existing_name, existing_config in existing.items():
+        normalized = normalize_header(existing_name)
+        if normalized not in generated_by_category:
+            merged[existing_name] = existing_config
+            continue
+
+        generated_name, generated_config = generated_by_category.pop(normalized)
+        if generated_config.key == snake_key(generated_name):
+            generated_config.key = existing_config.key
+        generated_config.icon = existing_config.icon
+        generated_config.description = existing_config.description
+        merged[existing_name] = generated_config
+
+    for generated_name, generated_config in generated.items():
+        if normalize_header(generated_name) in generated_by_category:
+            merged[generated_name] = generated_config
+
+    return merged
+
+
+def ruby_string(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def render_categories(categories: "OrderedDict[str, CategoryConfig]") -> str:
     lines = ["  CATEGORIES = {"]
     category_items = list(categories.items())
     for category_index, (name, config) in enumerate(category_items):
         lines.append(f'    "{name}" => {{')
         lines.append(f'      key: "{config.key}",')
+        if config.icon:
+            lines.append(f'      icon: "{ruby_string(config.icon)}",')
+        if config.description:
+            lines.append(f'      description: "{ruby_string(config.description)}",')
         lines.append(f"      overall_weight: {format_weight(config.overall_weight)},")
         lines.append("      fields: {")
         field_items = list(config.fields.items())
@@ -275,9 +370,14 @@ def main() -> int:
     parser.add_argument("--rubric-rb", type=Path, default=DEFAULT_RUBRIC_RB)
     args = parser.parse_args()
 
-    categories = read_rubric_categories(args.workbook)
-    generated = replace_categories(args.rubric_rb.read_text(), render_categories(categories))
     current = args.rubric_rb.read_text()
+    existing_categories = extract_existing_categories(current)
+    criterion_fields = extract_subcategory_fields(current)
+    categories = merge_with_existing_categories(
+        read_rubric_categories(args.workbook, criterion_fields),
+        existing_categories,
+    )
+    generated = replace_categories(current, render_categories(categories))
 
     if args.check:
         if current == generated:
