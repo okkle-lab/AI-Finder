@@ -217,19 +217,21 @@ CATEGORY_ROLLUP_ALIASES = {
 }
 
 AGREEMENT_TEST_IDS = ["AGR1", "AGR2", "AGR3", "AGR4", "AGR5"]
+RESEARCH_FACT_CHECKING_TEST_IDS = ["R1", "R7", "R9"]
+SOURCE_QUALITY_TEST_IDS = ["R2", "R3", "R6", "R8"]
 
 WEBSITE_DIRECT_FIELD_TEST_IDS = {
     "write_edit_score": ["W1"],
     "score_write_edit": ["W1"],
     "summarisation_score": ["W2"],
     "score_summarization": ["W2"],
-    "research_fact_checking_score": ["R1"],
-    "score_research_fact_check": ["R1"],
-    "source_quality_score": ["R2", "A&2"],
-    "score_source_quality": ["R2", "A&2"],
-    "hallucination_resistance_score": ["R3", "A&1"],
-    "score_hallucination_resistance": ["R3", "A&1"],
-    "deep_research_score": ["R4"],
+    "research_fact_checking_score": RESEARCH_FACT_CHECKING_TEST_IDS,
+    "score_research_fact_check": RESEARCH_FACT_CHECKING_TEST_IDS,
+    "source_quality_score": [*SOURCE_QUALITY_TEST_IDS, "A&2"],
+    "score_source_quality": [*SOURCE_QUALITY_TEST_IDS, "A&2"],
+    "hallucination_resistance_score": ["R4", "A&1"],
+    "score_hallucination_resistance": ["R4", "A&1"],
+    "deep_research_score": ["R5"],
     "coding_speed_score": ["C1"],
     "score_coding_speed": ["C1"],
     "coding_accuracy_score": ["C2"],
