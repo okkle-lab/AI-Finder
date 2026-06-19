@@ -21,6 +21,9 @@ breaking changes).
   text/input material, `Test ID`, and rubric row. Reused rows are copied into
   fresh output workbooks with cache metadata so changed prompts rerun without
   forcing unchanged prompts through the API again.
+- Prompt Output Grader 0.2.4 applies already-scored skipping per source-output
+  row, so old covered `Test ID` rows are skipped while new questions from the
+  same model still get graded.
 - Prompt Output Grader 0.2.3 only skips already-scored source models when the
   existing website score fields cover every selected `Test ID`, so new rubric
   questions are graded even for models that have older website scores.

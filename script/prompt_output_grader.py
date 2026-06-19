@@ -2139,29 +2139,20 @@ def filter_scored_source_outputs(
     scored_model_keys: dict[str, list[str]],
     field_tests: dict[str, list[str]],
 ) -> tuple[list[TestOutput], list[SkippedOutput]]:
-    output_test_ids_by_model: dict[str, set[str]] = {}
-    for output in outputs:
-        source_model_key = clean_text(output.source_model_key)
-        test_id = clean_text(output.test_id)
-        if source_model_key and test_id:
-            output_test_ids_by_model.setdefault(source_model_key, set()).add(test_id)
-
-    fully_covered_model_keys: set[str] = set()
-    for source_model_key, selected_test_ids in output_test_ids_by_model.items():
-        scored_fields = scored_model_keys.get(source_model_key, [])
-        covered_test_ids = {
+    covered_test_ids_by_model: dict[str, set[str]] = {}
+    for source_model_key, scored_fields in scored_model_keys.items():
+        covered_test_ids_by_model[source_model_key] = {
             test_id
             for field in scored_fields
             for test_id in field_tests.get(field, [])
         }
-        if selected_test_ids and selected_test_ids.issubset(covered_test_ids):
-            fully_covered_model_keys.add(source_model_key)
 
     selected: list[TestOutput] = []
     skipped: list[SkippedOutput] = []
     for output in outputs:
         source_model_key = clean_text(output.source_model_key)
-        if source_model_key and source_model_key in fully_covered_model_keys:
+        test_id = clean_text(output.test_id)
+        if source_model_key and test_id in covered_test_ids_by_model.get(source_model_key, set()):
             skipped.append(
                 SkippedOutput(
                     output.row_number,
@@ -2328,8 +2319,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--skip-scored-source-models",
         action="store_true",
         help=(
-            "Skip source model outputs only when existing website score fields "
-            "cover every selected Test ID for that source model."
+            "Skip source model outputs only when existing website score fields cover "
+            "that source model and Test ID."
         ),
     )
     parser.add_argument(
