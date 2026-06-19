@@ -265,6 +265,11 @@ if [[ -f "${REPO_ROOT}/db/seeds/model_variants.csv" ]]; then
   cp "${REPO_ROOT}/db/seeds/model_variants.csv" \
     "${APP_DIR}/Contents/Resources/Defaults/model_variants.csv"
 fi
+if [[ -f "${REPO_ROOT}/PromptGradeApp/Defaults/Model_Testing_Rubric.xlsx" ]]; then
+  mkdir -p "${APP_DIR}/Contents/Resources/Defaults"
+  cp "${REPO_ROOT}/PromptGradeApp/Defaults/Model_Testing_Rubric.xlsx" \
+    "${APP_DIR}/Contents/Resources/Defaults/Model_Testing_Rubric.xlsx"
+fi
 chmod +x "${APP_DIR}/Contents/MacOS/ModelEvalApp"
 chmod +x "${APP_DIR}/Contents/Resources/model_eval_runner"
 xattr -cr "${APP_DIR}"

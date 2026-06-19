@@ -11,6 +11,19 @@ breaking changes).
 - Added a double-clickable Windows launcher (`Launch AI Finder.bat`) that mirrors
   the macOS launcher by checking gems, preparing the database, starting Rails,
   and opening the local app in a browser.
+- Model Eval Runner 1.1.1 remembers pasted API keys locally in macOS Keychain
+  and reloads them on launch, while still letting environment variables
+  override saved values.
+- Model Eval Runner 1.1.0 adds a rubric workbook picker and CLI
+  `--rubric-workbook` preflight, so selected prompt `Test ID` values must have
+  enabled grading rubric rows before API calls are made.
+- Model Eval Runner can now reuse prior successful outputs per model, prompt
+  text/input material, `Test ID`, and rubric row. Reused rows are copied into
+  fresh output workbooks with cache metadata so changed prompts rerun without
+  forcing unchanged prompts through the API again.
+- Prompt Output Grader 0.2.0 adds lower-cost routine grading controls for
+  skipping already-scored source models, using only the first grader, and
+  requesting score-only judge output.
 - Added an automated model-evaluation runner for prompt/model spreadsheets,
   with resumable JSONL, CSV, live Excel output, and a final results workbook.
 - Added a prompt-output grading runner and SwiftUI macOS app that take a test
@@ -32,6 +45,20 @@ breaking changes).
   output.
 - Documented that Model Eval Runner packaged builds live in GitHub Releases
   while `ModelEvalApp/dist/` stays ignored as a local build-artifact folder.
+
+### Changed
+- Model Eval Runner now defaults to prompt-level result reuse instead of
+  whole-model score skipping; the older Skip Already Scored mode remains as a
+  fallback when reuse is turned off.
+- Model Eval Runner now defaults to Only Changed Prompts mode, so result reuse
+  does not backfill old missing/error pairs unless that mode is turned off.
+- Model Eval Runner defaults now keep unavailable Claude Fable disabled so
+  routine runs do not spend calls on known 404 responses.
+- The evaluator packaged defaults now include the grading rubric workbook and
+  refresh it from the Prompt Output Grader defaults during packaging.
+- Prompt Output Grader now treats already-scored source models as preserved
+  website seed data instead of clearing their existing scores during partial
+  grading runs.
 
 ## [0.5.1] — 2026-06-17
 

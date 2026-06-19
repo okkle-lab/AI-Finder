@@ -108,7 +108,7 @@ class ParsedNeed
 
   def self.tokenize(text)
     text.to_s.downcase.scan(/[a-z0-9][a-z0-9'-]+/)
-        .reject { |w| w.length < 3 || STOPWORDS.include?(w) }
+        .reject { |w| (w.length < 3 && !w.match?(/\d/)) || STOPWORDS.include?(w) }
         .uniq
   end
 

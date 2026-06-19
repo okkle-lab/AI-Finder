@@ -13,6 +13,15 @@ class ToolMatcher
     "price" => "Price"
   }.freeze
   DEFAULT_SORT = "relevance"
+  GENERIC_NAME_SEARCH_TERMS = (
+    ParsedNeed::CATEGORY_KEYWORDS.values.flatten +
+    ParsedNeed::FREE_PHRASES.flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } +
+    ParsedNeed::PRIVATE_PHRASES.flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } +
+    ParsedNeed::LOCAL_PHRASES.flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } +
+    Rubric::DIMENSIONS.values.flat_map { |config| Array(config[:intent_words]) } +
+    Rubric::DIMENSIONS.values.flat_map { |config| Array(config[:intent_phrases]).flat_map { |phrase| phrase.scan(/[a-z0-9][a-z0-9'-]+/) } } +
+    %w[model models product products]
+  ).uniq.freeze
 
   Result = Struct.new(:tools, :pool_size, :need, :used_keyword_fallback, keyword_init: true) do
     # True when we couldn't honestly fill a full lineup.
@@ -38,6 +47,9 @@ class ToolMatcher
     pool = hard_filtered.to_a
     used_fallback = false
 
+    name_pool = name_search.to_a
+    pool = name_pool if name_pool.any?
+
     # Last-resort keyword search — only when NO hard must-have was stated,
     # so we never surface a tool that violates a stated requirement.
     if pool.empty? && !@need.any_hard_flag? && @need.keywords.any?
@@ -57,7 +69,7 @@ class ToolMatcher
 
   private
 
-  def hard_filtered
+  def hard_filtered(include_categories: true)
     scope = Tool.visible.includes(:reviews, :model_variants)
     scope = scope.free_app   if @need.must_be_free
     scope = scope.private_ok if @need.must_be_private
@@ -72,21 +84,52 @@ class ToolMatcher
       )
     end
 
-    if @need.categories.any?
+    if include_categories && @need.categories.any?
       scope = scope.joins(:categories).where(categories: { slug: @need.categories }).distinct
     end
 
     scope
   end
 
-  def keyword_search
-    conditions = @need.keywords.each_index.map do |i|
-      "(tools.name ILIKE :w#{i} OR tools.provider ILIKE :w#{i} " \
-        "OR tools.why_this_one ILIKE :w#{i} OR categories.display_name ILIKE :w#{i})"
-    end.join(" OR ")
-    binds = @need.keywords.each_with_index.to_h { |w, i| [:"w#{i}", "%#{w}%"] }
+  def name_search
+    terms = name_search_terms
+    return Tool.none if terms.empty?
 
-    Tool.visible.includes(:reviews, :model_variants).left_joins(:categories).where(conditions, binds).distinct
+    # Product/model names are direct retrieval: "ChatGPT research" should still
+    # find ChatGPT, while hard flags like free/private/local remain strict.
+    scope = hard_filtered(include_categories: false)
+    strict_matches = match_by_name(scope, terms, match: :all)
+    strict_matches.exists? ? strict_matches : match_by_name(scope, terms, match: :any)
+  end
+
+  def keyword_search
+    match_by_keyword(Tool.visible.includes(:reviews, :model_variants).left_joins(:categories), @need.keywords)
+  end
+
+  def match_by_name(scope, terms, match:)
+    joiner = match == :all ? " AND " : " OR "
+    conditions = terms.each_index.map do |i|
+      "(tools.name ILIKE :n#{i} OR tools.provider ILIKE :n#{i} " \
+        "OR model_variants.name ILIKE :n#{i} OR model_variants.model_id_string ILIKE :n#{i})"
+    end.join(joiner)
+    binds = terms.each_with_index.to_h { |term, i| [:"n#{i}", "%#{term}%"] }
+
+    scope.left_joins(:model_variants).where(conditions, binds).distinct
+  end
+
+  def match_by_keyword(scope, terms)
+    conditions = terms.each_index.map do |i|
+      "(tools.name ILIKE :w#{i} OR tools.provider ILIKE :w#{i} " \
+        "OR tools.why_this_one ILIKE :w#{i} OR categories.display_name ILIKE :w#{i} " \
+        "OR model_variants.name ILIKE :w#{i} OR model_variants.model_id_string ILIKE :w#{i})"
+    end.join(" OR ")
+    binds = terms.each_with_index.to_h { |w, i| [:"w#{i}", "%#{w}%"] }
+
+    scope.left_joins(:model_variants).where(conditions, binds).distinct
+  end
+
+  def name_search_terms
+    @need.keywords - GENERIC_NAME_SEARCH_TERMS
   end
 
   # Reorder an already relevance-selected result set.

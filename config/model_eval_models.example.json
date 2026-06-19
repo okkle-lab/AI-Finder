@@ -15,6 +15,16 @@
       "max_tokens_param": "max_completion_tokens",
       "supports_custom_temperature": false
     },
+    "github_models": {
+      "type": "openai_compatible",
+      "base_url": "https://models.github.ai",
+      "api_key_env": "GITHUB_MODELS_TOKEN",
+      "chat_completions_path": "/inference/chat/completions",
+      "extra_headers": {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2026-03-10"
+      }
+    },
     "openai_images": {
       "type": "openai_image_generation",
       "base_url": "https://api.openai.com/v1",
@@ -56,6 +66,14 @@
       "provider": "openai_images",
       "model": "gpt-image-2",
       "capabilities": ["image"],
+      "enabled": false
+    },
+    {
+      "key": "github_models_01",
+      "name": "GitHub Models GPT-4.1",
+      "provider": "github_models",
+      "model": "openai/gpt-4.1",
+      "capabilities": ["text"],
       "enabled": false
     }
   ]

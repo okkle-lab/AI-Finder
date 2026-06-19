@@ -31,10 +31,12 @@ Default spreadsheets:
 
 - `Defaults/Model_Test_Prompts_for_Automation.xlsx`
 - `Defaults/AI_model_variants.xlsx`
+- `Defaults/Model_Testing_Rubric.xlsx`
 - `Defaults/model_variants.csv`
 
 The app preselects these files on launch. Replace the files in `Defaults/` and
-run `./package_app.sh` again to ship updated defaults.
+run `./package_app.sh` again to ship updated defaults. The package script also
+refreshes the bundled rubric from `PromptGradeApp/Defaults/Model_Testing_Rubric.xlsx`.
 
 Versioning:
 
@@ -50,6 +52,8 @@ Inputs:
 
 - Prompt spreadsheet: first sheet with `TESTID`, `Prompt`, and optional `Additional source information`.
 - Model spreadsheet: first sheet with `Model ID`, plus optional `OpenRouter Model ID`, `Model Name`, `Provider`, `Capabilities`, and `Enabled`.
+- Rubric workbook: optional but preselected. The runner verifies that selected
+  prompt `Test ID` values have enabled rubric rows before it spends API calls.
 - API key: cloud providers need authentication. For the default text route, paste one OpenRouter key into the app.
 - Image generation: off by default. Turn on Image Generation and paste an
   OpenAI API key to run the bundled `gpt-image-2` image model row.
@@ -59,9 +63,15 @@ Inputs:
   `openai/gpt-4.1`.
 - Parallel Products: off by default. Turn it on to run different product lanes
   at the same time while keeping models within each product in series.
-- Skip Already Scored: on by default. The runner uses `model_variants.csv` to
-  skip model keys that already have website scores, so routine runs focus on
-  new or unscored models.
+- Reuse Matching Results: on by default. The runner scans previous output
+  folders and reuses successful rows when the same model, `Test ID`, prompt
+  text/input material, and rubric row were already tested.
+- Only Changed Prompts: on by default with result reuse. The runner only calls
+  the API for prompt `Test ID` values whose prompt/input content is new or
+  changed compared with previous model-test workbooks, so it does not backfill
+  old missing or errored pairs unless you turn this off.
+- Skip Already Scored: fallback mode for when result reuse is off. It uses
+  `model_variants.csv` to skip model keys that already have website scores.
 
 The bundled model workbook includes disabled catalogue rows for comparable
 coding products such as GitHub Copilot, Claude Code, OpenAI Codex, Devin
@@ -73,9 +83,10 @@ If your model spreadsheet contains only ChatGPT/OpenAI text rows and no
 explicit provider settings, the runner uses direct OpenAI and only needs the
 OpenAI key. Mixed-provider sheets keep blank text providers on OpenRouter.
 
-Use Dry Run to validate both spreadsheets without making API calls or needing a
-key. With Skip Already Scored on, the dry run also shows which scored models
-were removed from the plan.
+Use Dry Run to validate the prompt/model spreadsheets, rubric coverage, and
+result reuse plan without making API calls or needing a key. When result reuse
+finds matching prior rows, those rows are copied into the new workbook and only
+changed or missing prompt/model/rubric pairs are sent to the API.
 
 If OpenRouter returns HTTP 402 saying the request requires more credits or fewer
 `max_tokens`, lower the app's Max Tokens value. The same app setting is sent as

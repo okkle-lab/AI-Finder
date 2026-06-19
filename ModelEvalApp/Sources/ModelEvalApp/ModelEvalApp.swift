@@ -1,4 +1,5 @@
 import AppKit
+import Security
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -46,6 +47,7 @@ struct ModelEvalApp: App {
 private enum AppPaths {
     static let defaultPromptSpreadsheetName = "Model_Test_Prompts_for_Automation.xlsx"
     static let defaultModelSpreadsheetName = "AI_model_variants.xlsx"
+    static let defaultRubricWorkbookName = "Model_Testing_Rubric.xlsx"
     static let defaultWebsiteSeedCSVName = "model_variants.csv"
 
     static var developmentRepoRoot: URL {
@@ -84,6 +86,17 @@ private enum AppPaths {
 
     static var defaultModelSpreadsheetURL: URL? {
         defaultSpreadsheetURL(named: defaultModelSpreadsheetName)
+    }
+
+    static var defaultRubricWorkbookURL: URL? {
+        if let url = defaultSpreadsheetURL(named: defaultRubricWorkbookName) {
+            return url
+        }
+
+        let gradingDefault = developmentRepoRoot
+            .appendingPathComponent("PromptGradeApp/Defaults", isDirectory: true)
+            .appendingPathComponent(defaultRubricWorkbookName)
+        return FileManager.default.fileExists(atPath: gradingDefault.path) ? gradingDefault : nil
     }
 
     static var defaultWebsiteSeedCSVURL: URL? {
@@ -147,25 +160,102 @@ private enum AppVersion {
     }
 }
 
+private enum APIKeyStore {
+    private static let service = Bundle.main.bundleIdentifier ?? "com.mototax.modelevalrunner"
+
+    static func read(account: String) -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard status == errSecSuccess,
+              let data = item as? Data,
+              let value = String(data: data, encoding: .utf8) else {
+            return ""
+        }
+        return value
+    }
+
+    static func save(_ value: String, account: String) {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedValue.isEmpty {
+            delete(account: account)
+            return
+        }
+
+        let data = Data(trimmedValue.utf8)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let attributes: [String: Any] = [
+            kSecValueData as String: data
+        ]
+
+        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            var newItem = query
+            newItem[kSecValueData as String] = data
+            newItem[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            SecItemAdd(newItem as CFDictionary, nil)
+        }
+    }
+
+    private static func delete(account: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
 @MainActor
 final class RunnerViewModel: ObservableObject {
+    private static let openRouterAPIKeyEnvironmentName = "OPENROUTER_API_KEY"
+    private static let openAIAPIKeyEnvironmentName = "OPENAI_API_KEY"
+    private static let githubModelsTokenEnvironmentName = "GITHUB_MODELS_TOKEN"
+
     @Published var promptSpreadsheetURL: URL? = AppPaths.defaultPromptSpreadsheetURL
     @Published var modelSpreadsheetURL: URL? = AppPaths.defaultModelSpreadsheetURL
+    @Published var rubricWorkbookURL: URL? = AppPaths.defaultRubricWorkbookURL
     @Published var outputBaseURL: URL = AppPaths.defaultOutputBaseURL
     @Published var pythonPath: String = AppPaths.defaultPythonPath
     @Published var includeImages = false
     @Published var dryRun = false
     @Published var parallelProducts = false
-    @Published var skipScoredModels = true
+    @Published var reuseMatchingResults = true
+    @Published var onlyChangedTests = true
+    @Published var skipScoredModels = false
     @Published var maxTokens = 1000
-    @Published var openRouterAPIKey: String = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? ""
-    @Published var openAIAPIKey: String = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
-    @Published var githubModelsToken: String = ProcessInfo.processInfo.environment["GITHUB_MODELS_TOKEN"] ?? ""
+    @Published var openRouterAPIKey: String {
+        didSet { APIKeyStore.save(openRouterAPIKey, account: Self.openRouterAPIKeyEnvironmentName) }
+    }
+    @Published var openAIAPIKey: String {
+        didSet { APIKeyStore.save(openAIAPIKey, account: Self.openAIAPIKeyEnvironmentName) }
+    }
+    @Published var githubModelsToken: String {
+        didSet { APIKeyStore.save(githubModelsToken, account: Self.githubModelsTokenEnvironmentName) }
+    }
     @Published var isRunning = false
     @Published var logText = ""
     @Published var lastOutputURL: URL?
 
     private var process: Process?
+
+    init() {
+        openRouterAPIKey = Self.initialSecret(environmentKey: Self.openRouterAPIKeyEnvironmentName)
+        openAIAPIKey = Self.initialSecret(environmentKey: Self.openAIAPIKeyEnvironmentName)
+        githubModelsToken = Self.initialSecret(environmentKey: Self.githubModelsTokenEnvironmentName)
+    }
 
     var canRun: Bool {
         promptSpreadsheetURL != nil && modelSpreadsheetURL != nil && !isRunning
@@ -188,6 +278,8 @@ final class RunnerViewModel: ObservableObject {
             try runProcess(
                 promptSpreadsheetURL: promptSpreadsheetURL,
                 modelSpreadsheetURL: modelSpreadsheetURL,
+                rubricWorkbookURL: rubricWorkbookURL,
+                historyURL: outputBaseURL,
                 outputURL: runFolder
             )
         } catch {
@@ -207,9 +299,19 @@ final class RunnerViewModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([lastOutputURL])
     }
 
+    private static func initialSecret(environmentKey: String) -> String {
+        if let value = ProcessInfo.processInfo.environment[environmentKey],
+           !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return value
+        }
+        return APIKeyStore.read(account: environmentKey)
+    }
+
     private func runProcess(
         promptSpreadsheetURL: URL,
         modelSpreadsheetURL: URL,
+        rubricWorkbookURL: URL?,
+        historyURL: URL,
         outputURL: URL
     ) throws {
         let runner = Process()
@@ -220,6 +322,9 @@ final class RunnerViewModel: ObservableObject {
             "--output-dir", outputURL.path,
             "--max-tokens", "\(maxTokens)"
         ]
+        if let rubricWorkbookURL {
+            arguments.append(contentsOf: ["--rubric-workbook", rubricWorkbookURL.path])
+        }
 
         if let bundledRunnerURL = AppPaths.bundledRunnerURL {
             runner.executableURL = bundledRunnerURL
@@ -239,7 +344,14 @@ final class RunnerViewModel: ObservableObject {
         if parallelProducts {
             arguments.append("--parallel-products")
         }
-        if skipScoredModels, let websiteSeedCSVURL = AppPaths.defaultWebsiteSeedCSVURL {
+        if reuseMatchingResults {
+            arguments.append("--reuse-matching-results")
+            arguments.append(contentsOf: ["--history-dir", historyURL.path])
+            if onlyChangedTests {
+                arguments.append("--only-changed-tests")
+            }
+        }
+        if skipScoredModels, !reuseMatchingResults, let websiteSeedCSVURL = AppPaths.defaultWebsiteSeedCSVURL {
             arguments.append(contentsOf: ["--website-seed-csv", websiteSeedCSVURL.path])
             arguments.append("--skip-scored-models")
         }
@@ -338,7 +450,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Model Eval Runner")
                     .font(.title2.weight(.semibold))
-                Text("Prompt sheet + model sheet - v\(AppVersion.display)")
+                Text("Prompt sheet + model sheet + rubric check - v\(AppVersion.display)")
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -364,6 +476,11 @@ struct ContentView: View {
                 title: "Model Spreadsheet",
                 systemImage: "list.bullet.rectangle",
                 url: $viewModel.modelSpreadsheetURL
+            )
+            SpreadsheetDropZone(
+                title: "Rubric Workbook",
+                systemImage: "checkmark.seal",
+                url: $viewModel.rubricWorkbookURL
             )
             outputPicker
             options
@@ -424,9 +541,17 @@ struct ContentView: View {
             Toggle(isOn: $viewModel.parallelProducts) {
                 Label("Parallel Products", systemImage: "arrow.triangle.branch")
             }
+            Toggle(isOn: $viewModel.reuseMatchingResults) {
+                Label("Reuse Matching Results", systemImage: "arrow.triangle.2.circlepath")
+            }
+            Toggle(isOn: $viewModel.onlyChangedTests) {
+                Label("Only Changed Prompts", systemImage: "square.and.pencil")
+            }
+            .disabled(!viewModel.reuseMatchingResults)
             Toggle(isOn: $viewModel.skipScoredModels) {
                 Label("Skip Already Scored", systemImage: "forward.end")
             }
+            .disabled(viewModel.reuseMatchingResults)
             HStack {
                 Label("Max Tokens", systemImage: "text.word.spacing")
                 Spacer()

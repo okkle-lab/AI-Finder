@@ -18,11 +18,13 @@ require "csv"
 require "yaml"
 require "date"
 require "time" # Time.parse (validating review published_at) — missing this 400'd in CI
+require "open3"
 
 ROOT          = File.expand_path("..", __dir__)
 CATALOGUE_CSV = File.join(ROOT, "db/seeds/ai_tool_catalogue_text_models.csv")
 VARIANTS_CSV  = File.join(ROOT, "db/seeds/model_variants.csv")
 REVIEWS_GLOB  = File.join(ROOT, "db/seeds/reviews/*.md")
+RUBRIC_SYNC   = File.join(ROOT, "script/sync_rubric_from_excel.py")
 
 CATALOGUE_HEADERS = %w[
   name provider website_url status last_verified data_pricing_confidence
@@ -279,6 +281,18 @@ Dir.glob(REVIEWS_GLOB).sort.each do |path|
       error "#{file}: published_at #{meta["published_at"].inspect} is not a valid date/time"
     end
   end
+end
+
+# --- rubric sync ---------------------------------------------------------------
+begin
+  stdout, stderr, status = Open3.capture3("python3", RUBRIC_SYNC, "--check")
+  unless status.success?
+    details = [stdout, stderr].join("\n").strip
+    error "rubric Excel/Ruby sync failed — run `python3 script/sync_rubric_from_excel.py --write`" \
+          "#{"\n#{details}" unless details.empty?}"
+  end
+rescue Errno::ENOENT
+  error "rubric Excel/Ruby sync failed — python3 is required to check #{File.basename(RUBRIC_SYNC)}"
 end
 
 # --- result ------------------------------------------------------------------

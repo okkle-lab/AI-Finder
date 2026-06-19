@@ -32,15 +32,15 @@ Grammarly,Grammarly,grammarly,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Poe,Poe,poe,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 DeepGram,DeepGram,deepgram,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 Jasper,Jasper,jasper,,,,,not yet tested,,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Perplexity,Sonar Pro,sonar-pro,3,15,per 1M tokens,200000,fast web-grounded answers,2026-06-19,1,,,,,,,,,,,,,,,,,,true,,,,,,,,,,,,,,,,,,,,,
-Perplexity,Sonar Deep Research,sonar-deep-research,2,8,per 1M tokens,128000,deep research and synthesis,2026-06-19,2,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-Cohere Command,Command A,command-a,2.5,10,per 1M tokens,256000,business text and retrieval workflows,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-xAI Grok,Grok 4.3,grok-4.3,1.25,2.5,per 1M tokens,1000000,general chat and reasoning,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-Qwen,Qwen3.7 Max,qwen3.7-max,1.25,3.75,per 1M tokens,1000000,flagship general reasoning,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-Qwen,Qwen3 Coder Plus,qwen3-coder-plus,0.65,3.25,per 1M tokens,1000000,coding tasks,2026-06-19,2,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-Amazon Nova,Nova Premier,nova-premier-v1,2.5,12.5,per 1M tokens,1000000,premium enterprise tasks,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-Amazon Nova,Nova Pro,nova-pro-v1,0.8,3.2,per 1M tokens,300000,balanced enterprise tasks,2026-06-19,2,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-Moonshot Kimi,Kimi K2.7 Code,kimi-k2.7-code,0.74,3.5,per 1M tokens,262144,coding and long-context work,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-Z.ai GLM,GLM 5.2,glm-5.2,1.2,4.1,per 1M tokens,1048576,high-context general tasks,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-MiniMax,MiniMax M3,minimax-m3,0.3,1.2,per 1M tokens,1048576,low-cost long-context tasks,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
-AI21 Jamba,Jamba Large 1.7,jamba-large-1.7,2,8,per 1M tokens,256000,enterprise long-context text,2026-06-19,1,,,,,,,,,,,,,,,,,,false,,,,,,,,,,,,,,,,,,,,,
+Perplexity,Sonar Pro,sonar-pro,3,15,per 1M tokens,200000,fast web-grounded answers,2026-06-19,1,7,7,9,9,,7,7,10,8,4,9,1,9,,3,9,4,true,7,10,8,4,9,8,9,10,9,8,4,9,,,,,1,9,4,9,3
+Perplexity,Sonar Deep Research,sonar-deep-research,2,8,per 1M tokens,128000,deep research and synthesis,2026-06-19,2,3,4,9,1,,7,4,2,,3,9,,1,,,2,,false,4,2,,3,9,,1,,,,,9,,,,,,4,,2,
+Cohere Command,Command A,command-a,2.5,10,per 1M tokens,256000,business text and retrieval workflows,2026-06-19,1,7,7,9,8,,7,7,9,6,6,8,1,9,,6,7,7,false,7,9,6,6,8,6,9,9,7,6,7,9,,,,,1,9,5,7,6
+xAI Grok,Grok 4.3,grok-4.3,1.25,2.5,per 1M tokens,1000000,general chat and reasoning,2026-06-19,1,8,7,6,9,,7,7,9,9,7,7,1,10,,9,9,5,false,7,9,9,7,7,8,10,10,9,7,5,6,,,,,1,9,2,9,9
+Qwen,Qwen3.7 Max,qwen3.7-max,1.25,3.75,per 1M tokens,1000000,flagship general reasoning,2026-06-19,1,8,8,7,9,,7,8,9,6,7,7,1,10,,3,10,4,false,8,9,6,7,7,9,10,9,10,9,4,7,,,,,1,9,5,10,3
+Qwen,Qwen3 Coder Plus,qwen3-coder-plus,0.65,3.25,per 1M tokens,1000000,coding tasks,2026-06-19,2,8,8,9,9,,7,8,9,6,7,6,1,10,,5,9,5,false,8,9,6,7,6,5,10,10,8,8,5,9,,,,,1,8,3,9,5
+Amazon Nova,Nova Premier,nova-premier-v1,2.5,12.5,per 1M tokens,1000000,premium enterprise tasks,2026-06-19,1,7,7,9,8,,7,7,8,5,6,7,1,9,,2,9,7,false,7,8,5,6,7,7,9,10,8,7,7,9,,,,,1,9,4,9,2
+Amazon Nova,Nova Pro,nova-pro-v1,0.8,3.2,per 1M tokens,300000,balanced enterprise tasks,2026-06-19,2,6,4,10,8,,8,4,8,5,7,7,1,9,,1,9,7,false,4,8,5,7,7,6,9,10,6,8,7,10,,,,,1,8,4,9,1
+Moonshot Kimi,Kimi K2.7 Code,kimi-k2.7-code,0.74,3.5,per 1M tokens,262144,coding and long-context work,2026-06-19,1,7,8,7,6,,8,8,9,9,9,7,1,,,3,9,7,false,8,9,9,9,7,8,,6,,,7,7,,,,,1,8,4,9,3
+Z.ai GLM,GLM 5.2,glm-5.2,1.2,4.1,per 1M tokens,1048576,high-context general tasks,2026-06-19,1,7,8,7,4,,7,8,9,6,4,7,1,,,3,9,,false,8,9,6,4,7,8,,1,,9,,7,,,,,1,8,5,9,3
+MiniMax,MiniMax M3,minimax-m3,0.3,1.2,per 1M tokens,1048576,low-cost long-context tasks,2026-06-19,1,4,1,10,,,7,1,9,6,4,8,1,,,3,9,3,false,1,9,6,4,8,8,,,,,3,10,,,,,1,9,5,9,3
+AI21 Jamba,Jamba Large 1.7,jamba-large-1.7,2,8,per 1M tokens,256000,enterprise long-context text,2026-06-19,1,7,7,9,4,,8,7,9,6,6,7,1,5,,3,8,9,false,7,9,6,6,7,6,5,2,6,3,9,9,,,,,1,9,5,8,3

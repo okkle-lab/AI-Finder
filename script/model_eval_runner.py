@@ -14,6 +14,7 @@ import concurrent.futures
 import csv
 import datetime as dt
 import difflib
+import hashlib
 import json
 import mimetypes
 import os
@@ -64,8 +65,18 @@ HEADER_ALIASES = {
         "Input Material",
     ],
 }
-
+RUBRIC_HEADER_ALIASES = {
+    "test_id": ["TESTID", "Test ID", "TestID", "Test Id", "ID"],
+    "enabled": ["Enabled", "Run", "Include"],
+}
+PREFERRED_RUBRIC_SHEET_NAMES = (
+    "Scoring Guide",
+    "Rubric",
+    "Rubric v3",
+    "Model Testing Rubric",
+)
 REQUIRED_PROMPT_FIELDS = {"test_id", "prompt"}
+REQUIRED_RUBRIC_FIELDS = {"test_id"}
 OPTIONAL_PROMPT_DEFAULTS = {
     "category": "",
     "criterion": "",
@@ -133,6 +144,11 @@ CSV_COLUMNS = [
     "total_tokens",
     "usage",
     "error",
+    "prompt_fingerprint",
+    "rubric_fingerprint",
+    "benchmark_fingerprint",
+    "cache_status",
+    "cache_source",
 ]
 
 
@@ -180,6 +196,14 @@ def normalized(value: str) -> str:
 
 def normalized_header(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.strip().lower())
+
+
+def stable_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def fingerprint_value(value: Any) -> str:
+    return hashlib.sha256(stable_json(value).encode("utf-8")).hexdigest()
 
 
 def image_id(test_id: str) -> bool:
@@ -577,6 +601,330 @@ def read_prompt_library(
         )
 
     return tests
+
+
+def read_rubric_test_fingerprints(workbook_path: Path, sheet_name: str | None) -> dict[str, str]:
+    wb = load_workbook(workbook_path, data_only=True)
+    candidate_sheets: list[Any] = []
+    if sheet_name:
+        if sheet_name not in wb.sheetnames:
+            raise ValueError(
+                f"Rubric sheet {sheet_name!r} not found. Available sheets: {', '.join(wb.sheetnames)}"
+            )
+        candidate_sheets.append(wb[sheet_name])
+    else:
+        for preferred in PREFERRED_RUBRIC_SHEET_NAMES:
+            if preferred in wb.sheetnames:
+                candidate_sheets.append(wb[preferred])
+        candidate_sheets.extend(
+            wb[name] for name in wb.sheetnames if wb[name] not in candidate_sheets
+        )
+
+    for ws in candidate_sheets:
+        try:
+            header_row, columns = find_header_row(
+                ws,
+                RUBRIC_HEADER_ALIASES,
+                REQUIRED_RUBRIC_FIELDS,
+            )
+        except ValueError:
+            continue
+
+        rows_by_test_id: dict[str, list[dict[str, str]]] = {}
+        enabled_column = columns.get("enabled")
+        header_values = {
+            column: clean_text(ws.cell(header_row, column).value) or f"Column {column}"
+            for column in range(1, ws.max_column + 1)
+        }
+        for row_number in range(header_row + 1, ws.max_row + 1):
+            test_id = clean_text(ws.cell(row_number, columns["test_id"]).value)
+            if not test_id:
+                continue
+            if enabled_column and not truthy(ws.cell(row_number, enabled_column).value, default=True):
+                continue
+            row_values = {
+                header_values[column]: clean_text(ws.cell(row_number, column).value)
+                for column in range(1, ws.max_column + 1)
+                if clean_text(ws.cell(row_number, column).value)
+            }
+            rows_by_test_id.setdefault(test_id, []).append(
+                {
+                    "sheet": ws.title,
+                    "row": str(row_number),
+                    **row_values,
+                }
+            )
+
+        if rows_by_test_id:
+            return {
+                test_id: fingerprint_value({"test_id": test_id, "rubric_rows": rows})
+                for test_id, rows in rows_by_test_id.items()
+            }
+
+    raise ValueError(
+        "Rubric workbook needs a sheet with a Test ID column. "
+        f"Checked sheets: {', '.join(wb.sheetnames)}"
+    )
+
+
+def read_rubric_test_ids(workbook_path: Path, sheet_name: str | None) -> set[str]:
+    return set(read_rubric_test_fingerprints(workbook_path, sheet_name))
+
+
+def validate_rubric_coverage(
+    tests: list[PromptTest],
+    rubric_test_ids: set[str],
+    allow_missing_rubric: bool,
+) -> list[str]:
+    missing = [
+        test.test_id
+        for test in tests
+        if test.test_id and test.test_id not in rubric_test_ids
+    ]
+    if missing and not allow_missing_rubric:
+        preview = ", ".join(missing[:25])
+        suffix = f" ... and {len(missing) - 25} more" if len(missing) > 25 else ""
+        raise ValueError(
+            "Rubric workbook is missing enabled selected Test ID(s): "
+            f"{preview}{suffix}. Update the rubric or pass --allow-missing-rubric."
+        )
+    return missing
+
+
+def prompt_fingerprint(test: PromptTest) -> str:
+    return fingerprint_value(
+        {
+            "schema": 1,
+            "test_id": test.test_id,
+            "category": test.category,
+            "criterion": test.criterion,
+            "weight": test.weight,
+            "eval_method": test.eval_method,
+            "applies_to": test.applies_to,
+            "prompt": test.prompt,
+            "input_material": test.input_material,
+        }
+    )
+
+
+def model_fingerprint(model: dict[str, Any]) -> str:
+    return fingerprint_value(
+        {
+            "schema": 1,
+            "key": clean_text(model.get("key")),
+            "provider": clean_text(model.get("provider")),
+            "model": clean_text(model.get("model")),
+        }
+    )
+
+
+def benchmark_fingerprint(
+    model: dict[str, Any],
+    test: PromptTest,
+    rubric_fingerprints: dict[str, str],
+) -> str:
+    return fingerprint_value(
+        {
+            "schema": 1,
+            "model": model_fingerprint(model),
+            "prompt": prompt_fingerprint(test),
+            "rubric": rubric_fingerprints.get(test.test_id, ""),
+            "output_type": "image" if is_image_test(test) else "text",
+        }
+    )
+
+
+def cacheable_result_row(row: dict[str, Any]) -> bool:
+    if clean_text(row.get("error")):
+        return False
+    return bool(
+        clean_text(row.get("response"))
+        or clean_text(row.get("output_files"))
+        or clean_text(row.get("output_urls"))
+    )
+
+
+def result_pair_key(row: dict[str, Any]) -> tuple[str, str]:
+    return (
+        clean_text(row.get("model_key")),
+        clean_text(row.get("test_id")),
+    )
+
+
+def completed_result_row(row: dict[str, Any]) -> bool:
+    return bool(
+        clean_text(row.get("response"))
+        or clean_text(row.get("output_files"))
+        or clean_text(row.get("output_urls"))
+        or clean_text(row.get("error"))
+    )
+
+
+def matching_existing_pair_keys(
+    rows: Iterable[dict[str, Any]],
+    pair_fingerprints: dict[tuple[str, str], str],
+) -> set[tuple[str, str]]:
+    keys: set[tuple[str, str]] = set()
+    for row in rows:
+        pair_key = result_pair_key(row)
+        if pair_key not in pair_fingerprints or not completed_result_row(row):
+            continue
+        if clean_text(row.get("benchmark_fingerprint")) == pair_fingerprints[pair_key]:
+            keys.add(pair_key)
+    return keys
+
+
+def cache_search_paths(history_dir: Path, output_dir: Path | None) -> list[Path]:
+    if not history_dir.exists():
+        return []
+
+    output_dir_resolved = output_dir.resolve() if output_dir and output_dir.exists() else None
+    paths: list[Path] = []
+    for path in history_dir.rglob("responses.jsonl"):
+        if output_dir_resolved:
+            try:
+                if path.resolve().is_relative_to(output_dir_resolved):
+                    continue
+            except OSError:
+                pass
+        paths.append(path)
+    return sorted(paths)
+
+
+def legacy_prompt_fingerprints(result_workbook_path: Path) -> dict[str, str]:
+    if not result_workbook_path.exists():
+        return {}
+    try:
+        tests = read_prompt_library(
+            workbook_path=result_workbook_path,
+            sheet_name="Test Prompts",
+            inherit_shorthand=True,
+        )
+    except Exception:
+        return {}
+    return {test.test_id: prompt_fingerprint(test) for test in tests}
+
+
+def history_prompt_fingerprints(
+    history_dir: Path | None,
+    output_dir: Path | None,
+) -> dict[str, set[str]]:
+    if not history_dir or not history_dir.exists():
+        return {}
+
+    output_dir_resolved = output_dir.resolve() if output_dir and output_dir.exists() else None
+    fingerprints: dict[str, set[str]] = {}
+    for path in sorted(history_dir.rglob("model_test_results.xlsx")):
+        if output_dir_resolved:
+            try:
+                if path.resolve().is_relative_to(output_dir_resolved):
+                    continue
+            except OSError:
+                pass
+        for test_id, fingerprint in legacy_prompt_fingerprints(path).items():
+            fingerprints.setdefault(test_id, set()).add(fingerprint)
+    return fingerprints
+
+
+def changed_test_ids(
+    tests: Iterable[PromptTest],
+    prompt_fingerprints_by_test_id: dict[str, str],
+    historical_prompt_fingerprints: dict[str, set[str]],
+) -> set[str]:
+    changed: set[str] = set()
+    for test in tests:
+        current = prompt_fingerprints_by_test_id.get(test.test_id)
+        if not current:
+            continue
+        if current not in historical_prompt_fingerprints.get(test.test_id, set()):
+            changed.add(test.test_id)
+    return changed
+
+
+def read_cached_result_rows(
+    history_dir: Path | None,
+    output_dir: Path | None,
+    needed_fingerprints: set[str],
+    pair_fingerprints: dict[tuple[str, str], str] | None = None,
+    prompt_fingerprints_by_test_id: dict[str, str] | None = None,
+    rubric_fingerprints: dict[str, str] | None = None,
+    model_identity_by_key: dict[str, tuple[str, str]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    if not history_dir or not needed_fingerprints:
+        return {}
+
+    cached: dict[str, dict[str, Any]] = {}
+    cached_timestamps: dict[str, str] = {}
+    legacy_prompt_cache: dict[Path, dict[str, str]] = {}
+    for path in cache_search_paths(history_dir, output_dir):
+        try:
+            rows = load_existing_jsonl(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        for row in rows:
+            fingerprint = clean_text(row.get("benchmark_fingerprint"))
+            pair_key = (
+                clean_text(row.get("model_key")),
+                clean_text(row.get("test_id")),
+            )
+            if not fingerprint and pair_fingerprints and pair_key in pair_fingerprints:
+                result_workbook_path = path.parent / "model_test_results.xlsx"
+                if result_workbook_path not in legacy_prompt_cache:
+                    legacy_prompt_cache[result_workbook_path] = legacy_prompt_fingerprints(
+                        result_workbook_path
+                    )
+                legacy_prompt = legacy_prompt_cache[result_workbook_path].get(pair_key[1])
+                current_prompt = (prompt_fingerprints_by_test_id or {}).get(pair_key[1])
+                current_model = (model_identity_by_key or {}).get(pair_key[0], ("", ""))
+                if (
+                    legacy_prompt
+                    and current_prompt
+                    and legacy_prompt == current_prompt
+                    and (
+                        not current_model[0]
+                        or clean_text(row.get("provider_model")) == current_model[0]
+                    )
+                    and (
+                        not current_model[1]
+                        or clean_text(row.get("provider")) == current_model[1]
+                    )
+                ):
+                    fingerprint = pair_fingerprints[pair_key]
+                    row = {
+                        **row,
+                        "prompt_fingerprint": current_prompt,
+                        "rubric_fingerprint": (rubric_fingerprints or {}).get(pair_key[1], ""),
+                        "benchmark_fingerprint": fingerprint,
+                    }
+            if fingerprint not in needed_fingerprints or not cacheable_result_row(row):
+                continue
+            timestamp = clean_text(row.get("timestamp"))
+            if fingerprint in cached and timestamp <= cached_timestamps.get(fingerprint, ""):
+                continue
+            cached_row = dict(row)
+            cached_row["_cache_source_path"] = str(path)
+            cached[fingerprint] = cached_row
+            cached_timestamps[fingerprint] = timestamp
+    return cached
+
+
+def reusable_result_row(
+    cached_row: dict[str, Any],
+    run_id: str,
+    cache_source: str,
+) -> dict[str, Any]:
+    row = {column: cached_row.get(column, "") for column in CSV_COLUMNS}
+    row["run_id"] = run_id
+    row["timestamp"] = dt.datetime.now(dt.timezone.utc).isoformat()
+    row["latency_seconds"] = 0
+    row["prompt_tokens"] = ""
+    row["completion_tokens"] = ""
+    row["reasoning_tokens"] = ""
+    row["total_tokens"] = ""
+    row["usage"] = {}
+    row["cache_status"] = "reused"
+    row["cache_source"] = cache_source
+    return row
 
 
 def skip_reason(test: PromptTest, args: argparse.Namespace) -> str | None:
@@ -1757,6 +2105,7 @@ def result_row(
     model: dict[str, Any],
     test: PromptTest,
     provider: str,
+    rubric_fingerprints: dict[str, str] | None = None,
     output_type: str = "text",
     response: str = "",
     output_files: list[str] | None = None,
@@ -1766,6 +2115,7 @@ def result_row(
     error: str = "",
 ) -> dict[str, Any]:
     usage_data = usage or {}
+    rubric_fingerprint = (rubric_fingerprints or {}).get(test.test_id, "")
     return {
         "run_id": run_id,
         "timestamp": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -1791,6 +2141,11 @@ def result_row(
         "total_tokens": usage_token_count(usage_data, "total_tokens"),
         "usage": usage_data,
         "error": error,
+        "prompt_fingerprint": prompt_fingerprint(test),
+        "rubric_fingerprint": rubric_fingerprint,
+        "benchmark_fingerprint": benchmark_fingerprint(model, test, rubric_fingerprints or {}),
+        "cache_status": "fresh",
+        "cache_source": "",
     }
 
 
@@ -1800,6 +2155,12 @@ def print_plan(
     skipped: list[SkippedTest],
     models: list[dict[str, Any]],
     skipped_scored_models: list[dict[str, Any]] | None = None,
+    planned_pair_count: int | None = None,
+    reused_pair_count: int = 0,
+    scored_model_filter_ignored: bool = False,
+    pending_pairs: list[tuple[dict[str, Any], PromptTest]] | None = None,
+    only_changed_tests: bool = False,
+    changed_tests: set[str] | None = None,
 ) -> None:
     skipped_scored_models = skipped_scored_models or []
     print(f"Models enabled: {len(models)}")
@@ -1813,6 +2174,8 @@ def print_plan(
         print(f"Already scored models skipped: {len(skipped_scored_models)}")
         for model in skipped_scored_models:
             print(f"  - {model.get('key')}: {model.get('name')}")
+    if scored_model_filter_ignored:
+        print("Already scored model filter: ignored because prompt-level result reuse is enabled")
     print(f"Automated tests: {len(tests)}")
     by_category: dict[str, int] = {}
     for test in tests:
@@ -1828,7 +2191,31 @@ def print_plan(
         for test in unsupported:
             required = "image" if is_image_test(test) else "text"
             print(f"  - {test.test_id}: needs {required} capability")
-    print(f"Total API calls for selected model/test pairs: {len(planned_pairs(config, models, tests))}")
+    if reused_pair_count:
+        print(f"Matching prior results reused: {reused_pair_count}")
+    if only_changed_tests:
+        changed_tests = changed_tests or set()
+        changed_text = ", ".join(sorted(changed_tests)) if changed_tests else "(none)"
+        print(f"Only changed prompts: on ({changed_text})")
+    api_calls = planned_pair_count
+    if api_calls is None:
+        api_calls = len(planned_pairs(config, models, tests))
+    print(f"Total API calls for selected model/test pairs: {api_calls}")
+    if pending_pairs and api_calls:
+        by_test: dict[str, int] = {}
+        by_model: dict[str, int] = {}
+        for model, test in pending_pairs:
+            by_test[test.test_id] = by_test.get(test.test_id, 0) + 1
+            model_key = clean_text(model.get("key"))
+            by_model[model_key] = by_model.get(model_key, 0) + 1
+
+        print("Pending API calls by Test ID:")
+        for test_id, count in sorted(by_test.items()):
+            print(f"  - {test_id}: {count}")
+
+        print("Pending API calls by model:")
+        for model_key, count in sorted(by_model.items()):
+            print(f"  - {model_key}: {count}")
 
 
 def print_parallel_plan(
@@ -1858,6 +2245,19 @@ def print_parallel_plan(
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workbook", required=True, help="Path to the source .xlsx prompt workbook.")
+    parser.add_argument(
+        "--rubric-workbook",
+        help="Optional grading rubric workbook used to verify selected Test IDs are scoreable.",
+    )
+    parser.add_argument(
+        "--rubric-sheet",
+        help="Rubric sheet name. Defaults to Scoring Guide/Rubric when present.",
+    )
+    parser.add_argument(
+        "--allow-missing-rubric",
+        action="store_true",
+        help="Warn instead of failing when selected prompt Test IDs are absent from the rubric workbook.",
+    )
     parser.add_argument("--config", help="Optional path to model_eval_models.json.")
     parser.add_argument(
         "--models-workbook",
@@ -1889,6 +2289,30 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--skip-scored-models",
         action="store_true",
         help="Skip model rows whose model_id_string already has at least one website score.",
+    )
+    parser.add_argument(
+        "--reuse-matching-results",
+        action="store_true",
+        help=(
+            "Reuse prior successful responses for the same model, prompt/input, "
+            "and rubric row instead of making another API call."
+        ),
+    )
+    parser.add_argument(
+        "--only-changed-tests",
+        action="store_true",
+        help=(
+            "When reusing results, only call the API for Test IDs whose prompt/input "
+            "content is new or changed compared with previous model-test workbooks. "
+            "This avoids backfilling old missing/error pairs."
+        ),
+    )
+    parser.add_argument(
+        "--history-dir",
+        help=(
+            "Directory containing previous model-test output folders with responses.jsonl. "
+            "Defaults to the parent of --output-dir when provided."
+        ),
     )
     parser.add_argument("--include-image", action="store_true", help="Include image-generation prompts.")
     parser.add_argument("--include-evidence", action="store_true", help="Include evidence/privacy/security rows.")
@@ -1935,6 +2359,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
     workbook_path = Path(args.workbook).expanduser()
+    rubric_workbook_path = (
+        Path(args.rubric_workbook).expanduser() if args.rubric_workbook else None
+    )
     config_path = Path(args.config).expanduser() if args.config else None
     models_workbook_path = (
         Path(args.models_workbook).expanduser() if args.models_workbook else None
@@ -1943,6 +2370,7 @@ def main(argv: list[str]) -> int:
     requested_website_seed_csv = (
         Path(args.website_seed_csv).expanduser() if args.website_seed_csv else None
     )
+    requested_history_dir = Path(args.history_dir).expanduser() if args.history_dir else None
 
     if config_path:
         config = load_json(config_path)
@@ -1965,7 +2393,8 @@ def main(argv: list[str]) -> int:
 
     models = enabled_models(config, args.only_models)
     skipped_scored_models: list[dict[str, Any]] = []
-    if args.skip_scored_models:
+    scored_model_filter_ignored = bool(args.skip_scored_models and args.reuse_matching_results)
+    if args.skip_scored_models and not args.reuse_matching_results:
         if not requested_website_seed_csv:
             raise ValueError("--skip-scored-models requires --website-seed-csv.")
         if not requested_website_seed_csv.exists():
@@ -1978,12 +2407,121 @@ def main(argv: list[str]) -> int:
         inherit_shorthand=not args.no_inherit_shorthand,
     )
     selected_tests, skipped = eligible_tests(tests, args)
+    rubric_fingerprints: dict[str, str] = {}
+    if rubric_workbook_path:
+        if not rubric_workbook_path.exists():
+            raise ValueError(f"Rubric workbook not found: {rubric_workbook_path}")
+        rubric_fingerprints = read_rubric_test_fingerprints(
+            rubric_workbook_path,
+            args.rubric_sheet,
+        )
+        missing_rubric_test_ids = validate_rubric_coverage(
+            selected_tests,
+            set(rubric_fingerprints),
+            args.allow_missing_rubric,
+        )
+        if missing_rubric_test_ids:
+            preview = ", ".join(missing_rubric_test_ids[:25])
+            suffix = (
+                f" ... and {len(missing_rubric_test_ids) - 25} more"
+                if len(missing_rubric_test_ids) > 25
+                else ""
+            )
+            print(
+                "Rubric coverage warning: "
+                f"{len(missing_rubric_test_ids)} selected Test ID(s) missing "
+                f"from rubric ({preview}{suffix})."
+            )
 
     pairs = planned_pairs(config, models, selected_tests)
+    history_dir = requested_history_dir
+    if history_dir is None and requested_output_dir is not None:
+        history_dir = requested_output_dir.parent
+    if history_dir is None:
+        history_dir = Path("outputs") / "model_tests"
+    pair_fingerprints = {
+        (clean_text(model.get("key")), test.test_id): benchmark_fingerprint(
+            model,
+            test,
+            rubric_fingerprints,
+        )
+        for model, test in pairs
+    }
+    prompt_fingerprints_by_test_id = {
+        test.test_id: prompt_fingerprint(test)
+        for test in selected_tests
+    }
+    historical_prompt_fingerprints = (
+        history_prompt_fingerprints(history_dir, requested_output_dir)
+        if args.reuse_matching_results
+        else {}
+    )
+    changed_prompt_test_ids = (
+        changed_test_ids(
+            selected_tests,
+            prompt_fingerprints_by_test_id,
+            historical_prompt_fingerprints,
+        )
+        if args.reuse_matching_results
+        else set()
+    )
+    model_identity_by_key = {
+        clean_text(model.get("key")): (
+            clean_text(model.get("model")),
+            clean_text(model.get("provider")),
+        )
+        for model in models
+    }
+    cached_rows_by_fingerprint = (
+        read_cached_result_rows(
+            history_dir=history_dir,
+            output_dir=requested_output_dir,
+            needed_fingerprints=set(pair_fingerprints.values()),
+            pair_fingerprints=pair_fingerprints,
+            prompt_fingerprints_by_test_id=prompt_fingerprints_by_test_id,
+            rubric_fingerprints=rubric_fingerprints,
+            model_identity_by_key=model_identity_by_key,
+        )
+        if args.reuse_matching_results
+        else {}
+    )
+    cached_pairs = {
+        pair_key: cached_rows_by_fingerprint[fingerprint]
+        for pair_key, fingerprint in pair_fingerprints.items()
+        if fingerprint in cached_rows_by_fingerprint
+    }
+    current_output_rows = (
+        []
+        if args.force or requested_output_dir is None
+        else load_existing_jsonl(requested_output_dir / "responses.jsonl")
+    )
+    current_completed_pairs = matching_existing_pair_keys(
+        current_output_rows,
+        pair_fingerprints,
+    )
+    api_pairs = [
+        (model, test)
+        for model, test in pairs
+        if (clean_text(model.get("key")), test.test_id) not in cached_pairs
+        and (clean_text(model.get("key")), test.test_id) not in current_completed_pairs
+        and (not args.only_changed_tests or test.test_id in changed_prompt_test_ids)
+    ]
 
     if args.dry_run:
-        print_plan(config, selected_tests, skipped, models, skipped_scored_models)
-        print_parallel_plan(config, pairs, args.parallel_products, args.product_workers)
+        print_plan(
+            config,
+            selected_tests,
+            skipped,
+            models,
+            skipped_scored_models,
+            planned_pair_count=len(api_pairs),
+            reused_pair_count=len(cached_pairs),
+            scored_model_filter_ignored=scored_model_filter_ignored,
+            pending_pairs=api_pairs,
+            only_changed_tests=args.only_changed_tests,
+            changed_tests=changed_prompt_test_ids,
+        )
+        print_parallel_plan(config, api_pairs, args.parallel_products, args.product_workers)
         return 0
     if not models:
         raise ValueError("No enabled models found in the config.")
@@ -1991,34 +2529,58 @@ def main(argv: list[str]) -> int:
         raise ValueError("No eligible tests selected.")
     if not pairs:
         raise ValueError("No eligible model/test pairs. Check model capabilities in the config.")
-    validate_api_keys(config, pairs)
-    validate_openrouter_model_ids(config, pairs)
+    validate_api_keys(config, api_pairs)
+    validate_openrouter_model_ids(config, api_pairs)
 
-    print_plan(config, selected_tests, skipped, models, skipped_scored_models)
-    print_parallel_plan(config, pairs, args.parallel_products, args.product_workers)
+    print_plan(
+        config,
+        selected_tests,
+        skipped,
+        models,
+        skipped_scored_models,
+        planned_pair_count=len(api_pairs),
+        reused_pair_count=len(cached_pairs),
+        scored_model_filter_ignored=scored_model_filter_ignored,
+        pending_pairs=api_pairs,
+        only_changed_tests=args.only_changed_tests,
+        changed_tests=changed_prompt_test_ids,
+    )
+    print_parallel_plan(config, api_pairs, args.parallel_products, args.product_workers)
 
     output_dir = make_output_dir(requested_output_dir)
     run_id = output_dir.name
     jsonl_path = output_dir / "responses.jsonl"
     live_xlsx_path = output_dir / "responses.xlsx"
     existing_rows = [] if args.force else load_existing_jsonl(jsonl_path)
-    planned_keys = {(model.get("key"), test.test_id) for model, test in pairs}
-    completed = {
-        (row.get("model_key"), row.get("test_id"))
-        for row in existing_rows
-        if (row.get("model_key"), row.get("test_id")) in planned_keys
-        and (
-            row.get("response")
-            or row.get("output_files")
-            or row.get("output_urls")
-            or row.get("error")
-        )
+    planned_keys = {(clean_text(model.get("key")), test.test_id) for model, test in pairs}
+    api_planned_keys = {
+        (clean_text(model.get("key")), test.test_id) for model, test in api_pairs
     }
+    existing_pair_keys = matching_existing_pair_keys(existing_rows, pair_fingerprints)
+    completed = existing_pair_keys & api_planned_keys
     all_rows = list(existing_rows)
     pair_order = {
         (clean_text(model.get("key")), test.test_id): index
         for index, (model, test) in enumerate(pairs)
     }
+
+    reused_now = 0
+    for model, test in pairs:
+        pair_key = (clean_text(model.get("key")), test.test_id)
+        cached_row = cached_pairs.get(pair_key)
+        if not cached_row or pair_key in existing_pair_keys:
+            continue
+        row = reusable_result_row(
+            cached_row,
+            run_id=run_id,
+            cache_source=clean_text(cached_row.get("_cache_source_path")),
+        )
+        append_jsonl(jsonl_path, row)
+        all_rows.append(row)
+        existing_pair_keys.add(pair_key)
+        reused_now += 1
+    if reused_now:
+        print(f"Reused {reused_now} matching prior result(s).", flush=True)
 
     def ordered_rows() -> list[dict[str, Any]]:
         return sorted(
@@ -2036,7 +2598,7 @@ def main(argv: list[str]) -> int:
     if args.excel_every:
         write_live_results_workbook(live_xlsx_path, ordered_rows(), skipped)
 
-    total = len(pairs)
+    total = len(api_pairs)
     done_count = len(completed)
     progress_lock = threading.Lock()
     output_lock = threading.Lock()
@@ -2066,6 +2628,7 @@ def main(argv: list[str]) -> int:
                 model=model,
                 test=test,
                 provider=provider,
+                rubric_fingerprints=rubric_fingerprints,
                 output_type="image",
                 response=response,
                 output_files=output_files,
@@ -2080,6 +2643,7 @@ def main(argv: list[str]) -> int:
             model=model,
             test=test,
             provider=provider,
+            rubric_fingerprints=rubric_fingerprints,
             response=response,
             latency_seconds=time.monotonic() - started,
             usage=usage,
@@ -2126,6 +2690,7 @@ def main(argv: list[str]) -> int:
                     model=model,
                     test=test,
                     provider=provider,
+                    rubric_fingerprints=rubric_fingerprints,
                     output_type="image" if is_image_test(test) else "text",
                     latency_seconds=time.monotonic() - started,
                     error=redact_secrets(f"{type(exc).__name__}: {exc}"),
@@ -2145,7 +2710,7 @@ def main(argv: list[str]) -> int:
             if sleep_seconds:
                 time.sleep(sleep_seconds)
 
-    product_groups = group_pairs_by_product(config, pairs)
+    product_groups = group_pairs_by_product(config, api_pairs)
     workers = product_worker_count(args.parallel_products, args.product_workers, len(product_groups))
     if workers > 1:
         print(f"Running product lanes in parallel with {workers} workers.", flush=True)
