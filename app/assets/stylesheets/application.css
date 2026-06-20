@@ -36,6 +36,13 @@
   --header-wash-clear: rgba(255, 255, 255, 0);
   --header-blur: 24px;
   --header-search-bg: rgba(255, 255, 255, 0.72);
+  --search-material-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.92));
+  --search-material-overlay: rgba(255, 255, 255, 0.82);
+  --search-material-border: rgba(190, 196, 208, 0.94);
+  --search-material-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 1px 2px rgba(26, 26, 46, 0.05),
+    0 10px 24px rgba(26, 26, 46, 0.08);
   --search-button-fill: linear-gradient(135deg, #fff7e8, #ffe8ef, #eef5ff);
   --search-button-fill-color: #1d1d1f;
   --score-cta-fill: linear-gradient(135deg, #eef6ff, #dbeafe, #bcd6ff);
@@ -337,18 +344,28 @@ body:has(.tool-detail) .site-header {
   max-width: 46rem;
   margin: 0 auto;
   padding: 0.25rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--search-material-border);
   border-radius: 999px;
-  background: var(--header-search-bg);
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
-  box-shadow: 0 1px 2px rgba(26, 26, 46, 0.04);
+  background: var(--search-material-bg);
+  isolation: isolate;
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: var(--search-material-shadow);
 }
 .search-form::before {
   content: ""; position: absolute; inset: 0;
   background: transparent;
   border-radius: 999px; z-index: -1;
   transition: inset 0.5s ease, opacity 0.5s ease, border-radius 0.5s ease, filter 0.5s ease, box-shadow 0.5s ease;
+}
+.search-form::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: var(--search-material-overlay);
+  pointer-events: none;
 }
 /* glow on hover, or once the user has typed something — not on an empty click/focus */
 .search-form:hover::before,
@@ -361,8 +378,10 @@ body:has(.tool-detail) .site-header {
   box-shadow: none;
 }
 .search-form:focus-within {
-  border-color: #c7ccd6;
-  box-shadow: 0 0 0 3px rgba(95, 130, 184, 0.12), 0 1px 2px rgba(26, 26, 46, 0.04);
+  border-color: rgba(177, 185, 199, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(95, 130, 184, 0.12),
+    var(--search-material-shadow);
 }
 .search-input {
   flex: 1;
@@ -374,6 +393,8 @@ body:has(.tool-detail) .site-header {
   border-radius: 999px;
   background: transparent;
   color: var(--ink);
+  position: relative;
+  z-index: 1;
 }
 .search-input:focus {
   outline: none;
@@ -389,11 +410,12 @@ body:has(.tool-detail) .site-header {
   gap: 0.45rem;
   padding: 0 1.5rem; font-size: 1rem; font-weight: 700;
   color: var(--ink); cursor: pointer; border: 1px solid var(--line); border-radius: 999px;
-  background: var(--header-search-bg);
-  backdrop-filter: blur(8px) saturate(140%);
-  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  background: var(--search-material-bg);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
   box-shadow: 0 1px 2px rgba(26, 26, 46, 0.06);
   overflow: hidden;
+  z-index: 2;
   transition: box-shadow 0.15s ease, color 0.5s ease, border-color 0.5s ease;
 }
 .search-button > * {
@@ -1657,6 +1679,13 @@ textarea.admin-input { resize: vertical; }
     --header-wash-clear: rgba(0, 0, 0, 0);
     --header-blur: 24px;
     --header-search-bg: rgba(48, 48, 48, 0.68);
+    --search-material-bg: linear-gradient(135deg, rgba(52, 52, 52, 0.94), rgba(40, 40, 40, 0.92));
+    --search-material-overlay: rgba(24, 24, 24, 0.62);
+    --search-material-border: rgba(255, 255, 255, 0.22);
+    --search-material-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.32),
+      0 10px 24px rgba(0, 0, 0, 0.36);
     --search-button-fill: linear-gradient(135deg, #f5a623, #ec4565, #5f82b8);
     --search-button-fill-color: #fff;
     --score-cta-fill: linear-gradient(135deg, #2563eb, #3b82f6, #60a5fa);
@@ -1704,7 +1733,7 @@ textarea.admin-input { resize: vertical; }
   .pulse { background: #272727; border-color: #3f3f3f; }
 
   /* inputs */
-  .search-input { background: #303030; color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); }
+  .search-input { background: transparent; color: var(--ink); box-shadow: none; }
   .search-input:focus { border-color: #4a4a4a; box-shadow: 0 0 0 3px rgba(180, 180, 180, 0.16); }
   .sort-select, .compare-select { background: #303030; color: var(--ink); }
   .why-shown { background: #272727; border-color: #3f3f3f; }
