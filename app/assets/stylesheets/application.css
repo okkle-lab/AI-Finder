@@ -1456,7 +1456,7 @@ textarea.admin-input { resize: vertical; }
 }
 .tool-detail .detail-band-main .detail-name {
   color: var(--product-wash-text);
-  font-size: clamp(2.45rem, 4.4vw, 3.8rem);
+  font-size: clamp(2.25rem, 3.7vw, 3.25rem);
   line-height: 1;
   font-weight: 900;
   letter-spacing: 0;
@@ -1495,6 +1495,7 @@ textarea.admin-input { resize: vertical; }
 .tool-detail .product-verdict {
   margin-top: -1rem;
   margin-bottom: 3.5rem;
+  max-width: none;
 }
 .tool-detail .glance-grid {
   gap: 2rem;
