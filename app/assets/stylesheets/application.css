@@ -1221,6 +1221,12 @@ textarea.admin-input { resize: vertical; }
   border-top: 0;
   border-bottom: 1px solid var(--line);
 }
+.tool-detail .score-highlights .take-hl-ic,
+.tool-detail .cat-bar-ic {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--icon-tint, var(--brand)), color-mix(in srgb, var(--icon-tint, var(--brand)) 70%, #000));
+}
 .cat-bars { display: flex; flex-direction: column; gap: 0.15rem; }
 .cat-bar-row {
   display: grid; grid-template-columns: 26px minmax(8rem, 12rem) 1fr 2.6rem; align-items: center; gap: 0.7rem;

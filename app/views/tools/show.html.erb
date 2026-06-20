@@ -86,8 +86,8 @@
       <div class="cat-bars">
         <% breakdown.each do |cat| %>
           <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row" do %>
-            <span class="cat-bar-ic" style="--icon-tint: <%= tool_monogram_color(cat[:name]) %>"><%= icon(cat[:icon], size: 16) %></span>
-            <span class="cat-bar-name"><%= cat[:name] %></span>
+            <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
+            <span class="cat-bar-name"><%= cat[:display_name] %></span>
             <span class="cat-bar-track"><span class="cat-bar-fill" style="width: <%= (cat[:score] * 10).round %>%; background: <%= score_color(cat[:score]) %>"></span></span>
             <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
           <% end %>

@@ -104,12 +104,17 @@ module ApplicationHelper
 
       {
         name: name,
+        display_name: score_category_display_name(name),
         key: config[:key],
         score: score.round(1),
-        icon: icons[config[:key]].presence || "sparkles",
+        icon: config[:icon].presence || icons[config[:key]].presence || "sparkles",
         fields: config[:fields].keys
       }
     end.sort_by { |c| -c[:score] }
+  end
+
+  def score_category_display_name(name)
+    name.to_s.casecmp("Accuracy & trustworthiness").zero? ? "Trustworthiness" : name
   end
 
   # The sub-criteria inside one category: [label, score, what-it-measures].
@@ -183,10 +188,10 @@ module ApplicationHelper
     highlights = []
 
     if (top = breakdown.first)
-      highlights << { icon: "trend-up", label: "Strongest at", value: "#{top[:name]} · #{score_number(top[:score])}" }
+      highlights << { icon: top[:icon], label: "Strongest at", value: "#{top[:display_name]} · #{score_number(top[:score])}" }
     end
     if breakdown.size > 1 && (bottom = breakdown.last) && bottom[:score] < 7.5
-      highlights << { icon: "bolt", label: "Weakest at", value: "#{bottom[:name]} · #{score_number(bottom[:score])}" }
+      highlights << { icon: bottom[:icon], label: "Weakest at", value: "#{bottom[:display_name]} · #{score_number(bottom[:score])}" }
     end
     highlights
   end
