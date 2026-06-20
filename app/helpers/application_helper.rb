@@ -96,10 +96,10 @@ module ApplicationHelper
   # Per-category scores for a tool, best-scored first, for the detail-page
   # breakdown and the review-page eval section. Only categories the tool is
   # actually scored on are returned (no fabricated zeros).
-  def tool_category_breakdown(tool)
+  def tool_category_breakdown(tool, model_variant: nil)
     icons = Category.pluck(:slug, :icon).to_h
     Rubric::CATEGORIES.filter_map do |name, config|
-      score = tool.comparison_category_score(config[:fields].keys)
+      score = tool_category_score(tool, name, config, model_variant:)
       next if score.nil?
 
       {
@@ -111,6 +111,15 @@ module ApplicationHelper
         fields: config[:fields].keys
       }
     end.sort_by { |c| -c[:score] }
+  end
+
+  def tool_category_score(tool, category_name, config, model_variant: nil)
+    fields = config[:fields].keys
+    if model_variant
+      model_variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category_name)
+    else
+      tool.comparison_category_score(fields)
+    end
   end
 
   def score_category_display_name(name)
@@ -181,10 +190,10 @@ module ApplicationHelper
   end
 
   # Bite-size score highlights for the product page, from real scored data.
-  def tool_verdict_highlights(tool)
+  def tool_verdict_highlights(tool, model_variant: nil)
     return [] unless tool.scored?
 
-    breakdown = tool_category_breakdown(tool)
+    breakdown = tool_category_breakdown(tool, model_variant:)
     highlights = []
 
     if (top = breakdown.first)
