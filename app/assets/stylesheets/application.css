@@ -24,6 +24,14 @@
   --score-grad: linear-gradient(135deg, #b9d9d5, #eef1ef);
   --score-pill-bg: linear-gradient(135deg, #f4faf9, #eef2f1);
   --score-pill-line: #d7e5e2;
+  --model-score-tabs-bg: #f7faf9;
+  --model-score-tabs-border: #d7e5e2;
+  --model-score-tab-color: #7c8683;
+  --model-score-tab-hover-bg: #ffffff;
+  --model-score-tab-hover-color: #1d1d1f;
+  --model-score-tab-active-bg: #214c45;
+  --model-score-tab-active-color: #ffffff;
+  --model-score-tab-active-shadow: 0 1px 2px rgba(33, 76, 69, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
   --track: #eceef1;
   /* grouped-section surfaces (e.g. Browse by task) */
   --surface-grey: #f5f5f7;
@@ -1214,9 +1222,9 @@ textarea.admin-input { resize: vertical; }
   gap: 0.35rem;
   margin: 0 auto 1.2rem;
   padding: 0.25rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--model-score-tabs-border);
   border-radius: 999px;
-  background: #f7f8fa;
+  background: var(--model-score-tabs-bg);
   width: fit-content;
   max-width: 100%;
 }
@@ -1226,21 +1234,21 @@ textarea.admin-input { resize: vertical; }
   min-height: 2rem;
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--model-score-tab-color);
   font-size: 0.84rem;
   font-weight: 700;
   white-space: nowrap;
 }
 .model-score-tab:hover {
   text-decoration: none;
-  color: var(--ink);
-  background: #fff;
+  color: var(--model-score-tab-hover-color);
+  background: var(--model-score-tab-hover-bg);
 }
 .model-score-tab-active,
 .model-score-tab-active:hover {
-  color: var(--score-ink);
-  background: var(--score-pill-bg);
-  box-shadow: inset 0 0 0 1px var(--score-pill-line);
+  color: var(--model-score-tab-active-color);
+  background: var(--model-score-tab-active-bg);
+  box-shadow: var(--model-score-tab-active-shadow);
 }
 .tool-detail .cat-bar-ic {
   color: var(--score-ink);
@@ -1743,6 +1751,14 @@ textarea.admin-input { resize: vertical; }
     --score-grad: linear-gradient(135deg, #4a8f87, #3a3a3a);
     --score-pill-bg: linear-gradient(135deg, #303836, #343434);
     --score-pill-line: #465956;
+    --model-score-tabs-bg: #2a302f;
+    --model-score-tabs-border: #465956;
+    --model-score-tab-color: #a8b1ae;
+    --model-score-tab-hover-bg: #343c3a;
+    --model-score-tab-hover-color: #edf6f4;
+    --model-score-tab-active-bg: #9fd6cf;
+    --model-score-tab-active-color: #102320;
+    --model-score-tab-active-shadow: 0 0 0 1px rgba(159, 214, 207, 0.18), 0 8px 18px rgba(0, 0, 0, 0.22);
     --track: #3a3a3a;
     --surface-grey: #1f1f1f;
     --tile-hover: #363636;
