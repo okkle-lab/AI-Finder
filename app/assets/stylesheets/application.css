@@ -36,8 +36,8 @@
   --header-wash-clear: rgba(255, 255, 255, 0);
   --header-blur: 24px;
   --header-search-bg: rgba(255, 255, 255, 0.72);
-  --search-material-bg: rgba(255, 255, 255, 0.88);
-  --search-material-border: rgba(199, 204, 214, 0.88);
+  --search-material-bg: rgba(255, 255, 255, 0.92);
+  --search-material-border: rgba(190, 196, 208, 0.94);
   --search-material-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.76),
     0 1px 2px rgba(26, 26, 46, 0.05),
@@ -1665,8 +1665,8 @@ textarea.admin-input { resize: vertical; }
     --header-wash-clear: rgba(0, 0, 0, 0);
     --header-blur: 24px;
     --header-search-bg: rgba(48, 48, 48, 0.68);
-    --search-material-bg: rgba(48, 48, 48, 0.86);
-    --search-material-border: rgba(255, 255, 255, 0.18);
+    --search-material-bg: rgba(48, 48, 48, 0.9);
+    --search-material-border: rgba(255, 255, 255, 0.22);
     --search-material-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 1px 2px rgba(0, 0, 0, 0.32),
