@@ -24,7 +24,7 @@
     <strong><%= @stats[:models] %> models</strong> across <strong><%= @stats[:categories] %> categories</strong>. No sponsored rankings.</p>
 </section>
 
-<section class="home-section">
+<section class="home-section home-section--browse">
   <h2 class="panel-title">Browse by task</h2>
   <% tile_chips = {
     "write-things"   => ["drafting", "summarisation", "editing"],
@@ -39,8 +39,7 @@
     <% @categories.each do |category| %>
       <%= link_to search_path(category: category.slug), class: "tile" do %>
         <span class="tile-head">
-          <span class="tile-icon" style="--icon-tint: <%= tool_monogram_color(category.display_name) %>"><%= icon(category.icon.presence || "sparkles", size: 18) %></span>
-          <span class="tile-name"><%= category.display_name %></span>
+          <span class="tile-name"><%= category.display_name.sub(/\A./, &:upcase) %></span>
         </span>
         <span class="tile-sub"><%= category.subtitle %></span>
         <% if (chips = tile_chips[category.slug]).present? %>
