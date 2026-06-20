@@ -62,41 +62,65 @@
     </div>
   </div>
 
-  <% breakdown = tool_category_breakdown(@tool, model_variant: @selected_model_variant) %>
+  <% breakdown = tool_category_breakdown(@tool, model_variant: @selected_model_variant, sort_by_score: false) %>
+  <% scores_unavailable = @selected_model_variant && breakdown.empty? %>
+  <% unavailable_backdrop = tool_category_breakdown(@tool, sort_by_score: false).presence || unavailable_score_category_backdrop if scores_unavailable %>
+  <% display_breakdown = scores_unavailable ? unavailable_backdrop : breakdown %>
   <% if breakdown.any? || @model_variants.any? %>
     <%= turbo_frame_tag "tool_scores", class: "tool-scores-frame" do %>
       <section class="cat-breakdown" id="how-it-scores">
         <div class="cat-breakdown-head">
           <h2 class="specs-title">How it scores</h2>
-          <span class="cat-breakdown-sub">Across <%= breakdown.size %> tested <%= "category".pluralize(breakdown.size) %></span>
+          <span class="cat-breakdown-sub">
+            <% if scores_unavailable %>
+              Not yet tested
+            <% else %>
+              Across <%= breakdown.size %> tested <%= "category".pluralize(breakdown.size) %>
+            <% end %>
+          </span>
         </div>
         <% if @model_variants.any? %>
           <% base_score_params = request.query_parameters.except("model_variant") %>
-          <nav class="model-score-tabs" aria-label="Score source">
+          <nav class="model-score-tabs" aria-label="Score source" data-controller="model-score-tabs" data-model-score-tabs-scope-value="<%= @tool.id %>">
+            <span class="model-score-tab-indicator" data-model-score-tabs-target="indicator" aria-hidden="true"></span>
             <%= link_to "All models",
                   tool_path(@tool, base_score_params),
                   class: ["model-score-tab", ("model-score-tab-active" if @selected_model_variant.nil?)].compact.join(" "),
-                  data: { turbo_frame: "tool_scores" },
+                  data: { turbo_frame: "tool_scores", model_score_tabs_target: "tab" },
                   aria: ({ current: "page" } if @selected_model_variant.nil?) %>
             <% @model_variants.each do |variant| %>
               <% active_variant = @selected_model_variant == variant %>
               <%= link_to variant.name,
                     tool_path(@tool, base_score_params.merge("model_variant" => variant.id)),
                     class: ["model-score-tab", ("model-score-tab-active" if active_variant)].compact.join(" "),
-                    data: { turbo_frame: "tool_scores" },
+                    data: { turbo_frame: "tool_scores", model_score_tabs_target: "tab" },
                     aria: ({ current: "page" } if active_variant) %>
             <% end %>
           </nav>
         <% end %>
-        <% if breakdown.any? %>
-          <div class="cat-bars">
-            <% breakdown.each do |cat| %>
-              <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row", data: { turbo_frame: "_top" } do %>
-                <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
-                <span class="cat-bar-name"><%= cat[:display_name] %></span>
-                <span class="cat-bar-track"><span class="cat-bar-fill" style="width: <%= (cat[:score] * 10).round %>%; background: <%= score_color(cat[:score]) %>"></span></span>
-                <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
+        <% if display_breakdown.any? %>
+          <div class="cat-bars-shell<%= " cat-bars-shell-unavailable" if scores_unavailable %>">
+            <div class="cat-bars" data-controller="score-bars" aria-hidden="<%= scores_unavailable %>">
+              <% display_breakdown.each do |cat| %>
+                <%= link_to leaderboard_path(cat[:key]), class: "cat-bar-row", data: { turbo_frame: "_top" } do %>
+                  <span class="cat-bar-ic" style="--icon-tint: var(--brand)"><%= icon(cat[:icon], size: 16) %></span>
+                  <span class="cat-bar-name"><%= cat[:display_name] %></span>
+                  <% score_width = (cat[:score] * 10).round %>
+                  <span class="cat-bar-track">
+                    <span
+                      class="cat-bar-fill"
+                      data-score-bars-target="fill"
+                      data-score-bars-key="<%= cat[:key] %>"
+                      data-score-bars-width="<%= score_width %>"
+                      style="width: <%= score_width %>%; background: <%= score_color(cat[:score]) %>"
+                    ></span>
+                  </span>
+                  <span class="cat-bar-score" style="color: <%= score_color(cat[:score]) %>"><%= score_number(cat[:score]) %></span>
+                <% end %>
               <% end %>
+            </div>
+            <% if scores_unavailable %>
+              <div class="cat-bars-overlay" role="status">Scores currently unavailable</div>
             <% end %>
           </div>
           <p class="cat-breakdown-foot"><%= link_to "See the full criterion-by-criterion review →", review_tool_path(@tool), data: { turbo_frame: "_top" } %></p>

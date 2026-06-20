@@ -93,12 +93,12 @@ module ApplicationHelper
     end
   end
 
-  # Per-category scores for a tool, best-scored first, for the detail-page
-  # breakdown and the review-page eval section. Only categories the tool is
-  # actually scored on are returned (no fabricated zeros).
-  def tool_category_breakdown(tool, model_variant: nil)
+  # Per-category scores for a tool. Sorted best-first by default for summaries
+  # and commentary; callers can keep rubric order for comparison surfaces.
+  # Only categories the tool is actually scored on are returned.
+  def tool_category_breakdown(tool, model_variant: nil, sort_by_score: true)
     icons = Category.pluck(:slug, :icon).to_h
-    Rubric::CATEGORIES.filter_map do |name, config|
+    breakdown = Rubric::CATEGORIES.filter_map do |name, config|
       score = tool_category_score(tool, name, config, model_variant:)
       next if score.nil?
 
@@ -110,15 +110,32 @@ module ApplicationHelper
         icon: config[:icon].presence || icons[config[:key]].presence || "sparkles",
         fields: config[:fields].keys
       }
-    end.sort_by { |c| -c[:score] }
+    end
+
+    sort_by_score ? breakdown.sort_by { |c| -c[:score] } : breakdown
   end
 
   def tool_category_score(tool, category_name, config, model_variant: nil)
     fields = config[:fields].keys
     if model_variant
+      return nil unless model_variant.scored?
+
       model_variant.category_score(fields, extra_scores: tool.rubric_field_values, category: category_name)
     else
       tool.comparison_category_score(fields)
+    end
+  end
+
+  def unavailable_score_category_backdrop
+    Rubric::CATEGORIES.map do |name, config|
+      {
+        name: name,
+        display_name: score_category_display_name(name),
+        key: config[:key],
+        score: 5.0,
+        icon: config[:icon].presence || "sparkles",
+        fields: config[:fields].keys
+      }
     end
   end
 
