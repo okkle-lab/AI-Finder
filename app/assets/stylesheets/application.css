@@ -1456,27 +1456,27 @@ textarea.admin-input { resize: vertical; }
 }
 .tool-detail .detail-band-main .detail-name {
   color: var(--product-wash-text);
-  font-size: clamp(3rem, 7vw, 5.75rem);
-  line-height: 0.95;
+  font-size: clamp(2.45rem, 4.4vw, 3.8rem);
+  line-height: 1;
   font-weight: 900;
   letter-spacing: 0;
   text-wrap: balance;
 }
 .tool-detail .detail-band-main .detail-provider {
   color: var(--product-wash-muted);
-  font-size: clamp(1.05rem, 1.7vw, 1.45rem);
-  margin-top: 0.55rem;
+  font-size: clamp(1rem, 1.25vw, 1.2rem);
+  margin-top: 0.4rem;
 }
 .tool-detail .detail-logo {
-  width: clamp(72px, 10vw, 104px);
-  height: clamp(72px, 10vw, 104px);
-  border-radius: clamp(18px, 2.4vw, 26px);
-  font-size: clamp(2rem, 4vw, 3.1rem);
+  width: clamp(68px, 7vw, 86px);
+  height: clamp(68px, 7vw, 86px);
+  border-radius: clamp(17px, 1.8vw, 22px);
+  font-size: clamp(1.9rem, 3vw, 2.55rem);
   border-color: var(--product-wash-logo-border);
 }
 .tool-detail .detail-band-score { color: var(--product-wash-text); }
-.tool-detail .dbs-num { font-size: clamp(3.1rem, 5.5vw, 4.6rem); }
-.tool-detail .dbs-den { font-size: clamp(1.05rem, 1.8vw, 1.35rem); }
+.tool-detail .dbs-num { font-size: clamp(2.6rem, 4vw, 3.4rem); }
+.tool-detail .dbs-den { font-size: clamp(0.95rem, 1.35vw, 1.1rem); }
 .tool-detail .dbs-cap { font-size: 0.78rem; margin-top: 0.2rem; display: block; }
 .tool-detail .band-chip {
   background: var(--product-wash-chip-bg);
@@ -1495,10 +1495,6 @@ textarea.admin-input { resize: vertical; }
 .tool-detail .product-verdict {
   margin-top: -1rem;
   margin-bottom: 3.5rem;
-}
-.tool-detail .product-verdict-body {
-  font-size: clamp(1.12rem, 1.55vw, 1.28rem);
-  line-height: 1.55;
 }
 .tool-detail .glance-grid {
   gap: 2rem;
