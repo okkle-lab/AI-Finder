@@ -1468,11 +1468,15 @@ textarea.admin-input { resize: vertical; }
   margin-top: 0.4rem;
 }
 .tool-detail .detail-logo {
-  width: clamp(68px, 7vw, 86px);
-  height: clamp(68px, 7vw, 86px);
-  border-radius: clamp(17px, 1.8vw, 22px);
-  font-size: clamp(1.9rem, 3vw, 2.55rem);
-  border-color: var(--product-wash-logo-border);
+  width: clamp(76px, 7.6vw, 96px);
+  height: clamp(76px, 7.6vw, 96px);
+  border: 0;
+  border-radius: clamp(19px, 2vw, 24px);
+  font-size: clamp(2rem, 3.2vw, 2.8rem);
+}
+.tool-detail .detail-logo .tool-logo-img {
+  border-radius: inherit;
+  transform: scale(1.12);
 }
 .tool-detail .detail-band-score { color: var(--product-wash-text); }
 .tool-detail .dbs-num { font-size: clamp(2.6rem, 4vw, 3.4rem); }
