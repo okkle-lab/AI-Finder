@@ -1,6 +1,6 @@
 module IconHelper
   BRAND_COLORS = {
-    "chatgpt" => "#10a37f",
+    "chatgpt" => "#111111",
     "claude" => "#d97757",
     "google gemini" => "#4285f4",
     "microsoft copilot" => "#0078d4",
