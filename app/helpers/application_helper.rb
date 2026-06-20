@@ -175,8 +175,7 @@ module ApplicationHelper
     (pairs.sum { |s, w| s * w } / total_w).round(1)
   end
 
-  # Bite-size editorial highlights for the "Our take" panel — strongest area,
-  # weakest area, free tier, and model lineup, all from real scored data.
+  # Bite-size score highlights for the product page, from real scored data.
   def tool_verdict_highlights(tool)
     return [] unless tool.scored?
 
@@ -188,10 +187,6 @@ module ApplicationHelper
     end
     if breakdown.size > 1 && (bottom = breakdown.last) && bottom[:score] < 7.5
       highlights << { icon: "bolt", label: "Weakest at", value: "#{bottom[:name]} · #{score_number(bottom[:score])}" }
-    end
-    highlights << { icon: "currency-dollar", label: "Free tier", value: tool.verdict_free_tier? ? "Yes" : "No" }
-    if (n = tool.verdict_models_available).to_i.positive?
-      highlights << { icon: "sparkles", label: "Models", value: "#{n} available" }
     end
     highlights
   end

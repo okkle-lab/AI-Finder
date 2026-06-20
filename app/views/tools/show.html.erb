@@ -32,10 +32,13 @@
     <% end %>
   </header>
 
-  <% if @tool.why_this_one.present? %>
-    <p class="detail-quote"><%= @tool.why_this_one %></p>
-  <% end %>
+  <section class="product-verdict">
+    <% tool_verdict_commentary(@tool).each do |para| %>
+      <p class="product-verdict-body"><%= para %></p>
+    <% end %>
+  </section>
 
+  <% models_available = @tool.verdict_models_available.to_i %>
   <div class="glance-grid">
     <div class="glance-card">
       <span class="glance-ic"><%= icon("currency-dollar", size: 18) %></span>
@@ -52,18 +55,12 @@
       <span class="glance-label">Ease</span>
       <span class="glance-val"><%= @tool.display_ease_label %></span>
     </div>
-  </div>
-
-  <section class="our-take">
-    <div class="our-take-head">
-      <span class="our-take-badge"><%= icon("sparkles", size: 15) %> Our take</span>
+    <div class="glance-card">
+      <span class="glance-ic"><%= icon("sparkles", size: 18) %></span>
+      <span class="glance-label">Models</span>
+      <span class="glance-val"><%= models_available.positive? ? "#{models_available} available" : "Not listed" %></span>
     </div>
-    <% tool_verdict_commentary(@tool).each do |para| %>
-      <p class="our-take-body"><%= para %></p>
-    <% end %>
-
-    <p class="our-take-byline">— AI Finder editorial · sample commentary</p>
-  </section>
+  </div>
 
   <% highlights = tool_verdict_highlights(@tool) %>
   <% breakdown = tool_category_breakdown(@tool) %>
