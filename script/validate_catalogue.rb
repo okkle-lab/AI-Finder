@@ -27,7 +27,7 @@ REVIEWS_GLOB  = File.join(ROOT, "db/seeds/reviews/*.md")
 RUBRIC_SYNC   = File.join(ROOT, "script/sync_rubric_from_excel.py")
 
 CATALOGUE_HEADERS = %w[
-  name provider website_url status last_verified data_pricing_confidence
+  name provider website_url logo_domain status last_verified data_pricing_confidence
   input_usd_per_m output_usd_per_m pricing_unit price_low_usd price_high_usd
   context_window api_free_tier consumer_free_app data_retention runs_locally
   privacy_label price_label ease_label why_this_one

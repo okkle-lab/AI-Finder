@@ -82,9 +82,12 @@ module IconHelper
   # The tool's real favicon (the official brand mark), via Google's favicon
   # service. Returns nil when there's no website to derive it from.
   def tool_logo_url(tool, size: 128)
-    return nil if tool.website_url.blank?
+    logo_source = tool.respond_to?(:logo_domain) ? tool.logo_domain.presence : nil
+    logo_source ||= tool.website_url
+    return nil if logo_source.blank?
 
-    host = URI.parse(tool.website_url).host rescue nil
+    host = URI.parse(logo_source).host rescue nil
+    host ||= logo_source.to_s.sub(/\Ahttps?:\/\//, "").split("/").first
     return nil if host.blank?
 
     "https://www.google.com/s2/favicons?domain=#{CGI.escape(host)}&sz=#{size}"

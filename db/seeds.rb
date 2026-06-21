@@ -110,6 +110,7 @@ CSV.foreach(csv_path, headers: true) do |row|
   tool.assign_attributes(
     provider:                 row["provider"].presence,
     website_url:              row["website_url"].presence,
+    logo_domain:              row["logo_domain"].presence,
     status:                   (row["status"].presence || "live"),
     last_verified:            row["last_verified"].presence,
     data_pricing_confidence:  row["data_pricing_confidence"].presence,

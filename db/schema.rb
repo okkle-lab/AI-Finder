@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_06_20_143000) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_21_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -232,6 +232,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_143000) do
     t.boolean "hipaa_eligible"
     t.boolean "no_training_on_user_data"
     t.boolean "configurable_data_retention"
+    t.string "logo_domain"
     t.index ["consumer_free_app"], name: "index_tools_on_consumer_free_app"
     t.index ["data_retention"], name: "index_tools_on_data_retention"
     t.index ["name"], name: "index_tools_on_name", unique: true

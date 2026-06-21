@@ -60,17 +60,26 @@
 <% if @top_rated.any? %>
   <section class="home-section">
     <div class="section-head">
-      <h2 class="panel-title">Top rated overall</h2>
+      <h2 class="panel-title">Top general-purpose products</h2>
       <%= link_to "Browse all leaderboards →", leaderboards_path, class: "section-all" %>
     </div>
     <ol class="top-list">
-      <% @top_rated.each_with_index do |(tool, score), i| %>
-        <%= link_to tool_path(tool), class: "top-row" do %>
+      <% @top_rated.each_with_index do |entry, i| %>
+        <% tool = entry[:tool] %>
+        <% score = entry[:score] %>
+        <% model_variant = entry[:model_variant] %>
+        <% top_path = model_variant ? tool_path(tool, model_variant: model_variant.id) : tool_path(tool) %>
+        <%= link_to top_path, class: "top-row" do %>
           <span class="top-rank"><%= i + 1 %></span>
           <%= tool_logo(tool, css_class: "top-logo") %>
           <span class="top-main">
             <span class="top-name"><%= tool.name %></span>
-            <% if tool.provider.present? %><span class="top-prov">by <%= tool.provider %></span><% end %>
+            <% if tool.provider.present? || model_variant.present? %>
+              <span class="top-meta">
+                <% if tool.provider.present? %><span>by <%= tool.provider %></span><% end %>
+                <% if model_variant.present? %><span>Best model: <%= model_variant.name %></span><% end %>
+              </span>
+            <% end %>
           </span>
           <span class="top-score" style="color: <%= score_color(score) %>"><%= score_number(score) %></span>
         <% end %>

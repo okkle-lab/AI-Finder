@@ -16,6 +16,38 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert_equal 8.0, coding_tool.overall_verdict
   end
 
+  test "general purpose verdict requires broad core category coverage" do
+    specialist = Tool.new(name: "Specialist")
+    specialist.model_variants.build(name: "speech", transcription_score: 10)
+
+    assert_equal 10.0, specialist.overall_verdict
+    assert_nil specialist.general_purpose_verdict
+    assert_nil specialist.best_general_purpose_model_variant
+  end
+
+  test "general purpose verdict uses the best broadly scored model" do
+    tool = Tool.new(name: "Broad Assistant", prompt_effort_score: 8, interface_score: 8, learning_curve_score: 8)
+    tool.model_variants.build(
+      name: "narrow",
+      transcription_score: 10
+    )
+    broad = tool.model_variants.build(
+      name: "broad",
+      write_edit_score: 8,
+      research_fact_checking_score: 8,
+      source_quality_score: 8,
+      coding_speed_score: 8,
+      coding_accuracy_score: 8,
+      hallucination_resistance_score: 8,
+      consistency_score: 8
+    )
+
+    assert_operator tool.overall_verdict, :>, tool.general_purpose_verdict
+    assert_equal "narrow", tool.best_model_variant.name
+    assert_equal 8.0, tool.general_purpose_verdict
+    assert_equal broad, tool.best_general_purpose_model_variant
+  end
+
   test "rank_score with no dimension is just the overall verdict" do
     assert_equal 8.0, coding_tool.rank_score(nil)
   end

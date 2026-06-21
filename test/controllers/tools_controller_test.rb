@@ -181,8 +181,8 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".usage-bar-ic svg.icon", count: 2
     assert_select ".usage-bar-name", "Avg time (in seconds)"
     assert_select ".usage-bar-name", "Avg tokens"
-    assert_select ".usage-bar-row[data-usage-metric-kind='time'] .usage-bar-fill[style*='rgb(153, 149, 159)']"
-    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'] .usage-bar-fill[style*='rgb(193, 141, 154)']"
+    assert_select ".usage-bar-row[data-usage-metric-kind='time'] .usage-bar-fill[style*='rgb(98, 179, 148)']"
+    assert_select ".usage-bar-row[data-usage-metric-kind='tokens'] .usage-bar-fill[style*='rgb(232, 154, 147)']"
     assert_select ".usage-bar-value", "2.0"
     assert_select ".usage-bar-value", "400"
     assert_select ".usage-bar-value", { text: "2.0s", count: 0 }

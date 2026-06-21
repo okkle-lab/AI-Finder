@@ -26,6 +26,14 @@ class Tool < ApplicationRecord
 
   # Neutral baseline so un-scored tools don't sink in ranking.
   RANK_BASELINE = 5.0
+  GENERAL_PURPOSE_CATEGORIES = [
+    "Writing",
+    "Research",
+    "Coding",
+    "Accuracy & trustworthiness",
+    "Ease of use"
+  ].freeze
+  GENERAL_PURPOSE_MIN_CATEGORIES = 4
 
   # Intent dimension (chosen by the parser from the user's request) => the
   # score column it ranks on. Kept for callers, derived from the rubric map so
@@ -80,6 +88,15 @@ class Tool < ApplicationRecord
 
   def best_model_variant
     model_variants.select(&:scored?).max_by { |variant| variant.verdict || -Float::INFINITY }
+  end
+
+  def general_purpose_verdict
+    score = best_general_purpose_model_score || self_general_purpose_verdict
+    score&.round(1)
+  end
+
+  def best_general_purpose_model_variant
+    best_general_purpose_model_result&.first
   end
 
   def verdict_model_name
@@ -283,6 +300,45 @@ class Tool < ApplicationRecord
   end
 
   private
+
+  def best_general_purpose_model_result
+    model_variants.filter_map do |variant|
+      next unless variant.scored?
+
+      score = general_purpose_verdict_for_model(variant)
+      [variant, score] if score
+    end.max_by { |_variant, score| score }
+  end
+
+  def best_general_purpose_model_score
+    best_general_purpose_model_result&.last
+  end
+
+  def self_general_purpose_verdict
+    scores = GENERAL_PURPOSE_CATEGORIES.filter_map do |category|
+      fields = Rubric::CATEGORIES.fetch(category).fetch(:fields).keys
+      category_score(fields, category:)
+    end
+
+    general_purpose_average(scores)
+  end
+
+  def general_purpose_verdict_for_model(variant)
+    scores = GENERAL_PURPOSE_CATEGORIES.filter_map do |category|
+      fields = Rubric::CATEGORIES.fetch(category).fetch(:fields).keys
+      next unless variant_scored_for_fields?(variant, fields)
+
+      variant.category_score(fields, extra_scores: rubric_field_values, category:)
+    end
+
+    general_purpose_average(scores)
+  end
+
+  def general_purpose_average(scores)
+    return nil if scores.size < GENERAL_PURPOSE_MIN_CATEGORIES
+
+    scores.sum.to_f / scores.size
+  end
 
   def retention_blurb
     case data_retention

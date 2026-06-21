@@ -7,7 +7,7 @@
 require "csv"
 
 HEADERS = %w[
-  name provider website_url status last_verified data_pricing_confidence
+  name provider website_url logo_domain status last_verified data_pricing_confidence
   input_usd_per_m output_usd_per_m pricing_unit price_low_usd price_high_usd
   context_window api_free_tier consumer_free_app data_retention runs_locally
   privacy_label price_label ease_label why_this_one
@@ -83,7 +83,7 @@ ROWS = [
     cats: "code"
   },
   {
-    name: "Whisper", provider: "OpenAI", website_url: "https://github.com/openai/whisper",
+    name: "Whisper", provider: "OpenAI", website_url: "https://github.com/openai/whisper", logo_domain: "openai.com",
     confidence: "high", input: nil, output: nil, unit: nil,
     context: nil, api_free: "yes", free_app: "no", retention: "none", local: "yes",
     privacy: "runs on your own machine — nothing leaves it", price: "free and open source",
@@ -225,7 +225,7 @@ CSV.open(File.expand_path("ai_tool_catalogue_text_models.csv", __dir__), "w") do
   csv << HEADERS
   ROWS.each do |r|
     csv << [
-      r[:name], r[:provider], r[:website_url], "live", VERIFIED, r[:confidence],
+      r[:name], r[:provider], r[:website_url], r[:logo_domain], "live", VERIFIED, r[:confidence],
       r[:input], r[:output], r[:unit], r[:price_low], r[:price_high],
       r[:context], r[:api_free], r[:free_app], r[:retention], r[:local],
       r[:privacy], r[:price], r[:ease], r[:why],
