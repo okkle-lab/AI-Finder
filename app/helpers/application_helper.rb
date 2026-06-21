@@ -294,40 +294,62 @@ module ApplicationHelper
     (pairs.sum { |s, w| s * w } / total_w).round(1)
   end
 
-  # Colour scores on a calm grey→pastel-teal scale, calibrated to the real
-  # distribution: 5 is neutral, 7 is the midpoint, and 9+ earns full teal.
+  # Colour scores on a calm pastel diverging scale so quality bands separate at
+  # a glance: weak scores read pink, 5 sits neutral grey, and strong scores
+  # deepen into teal. Pink always means "worse", teal "better" — the same
+  # convention the efficiency/value metrics use.
+  SCORE_PINK = [229, 134, 149].freeze
+  SCORE_GREY = [145, 151, 160].freeze
+  SCORE_TEAL = [33, 76, 69].freeze
+
   def score_color(value)
     return nil if value.nil?
 
     n = value.to_f.clamp(1.0, 10.0)
-    ratio = ((n - 5.0) / 4.0).clamp(0.0, 1.0)
-    low = [145, 151, 160]
-    high = [82, 166, 156]
-    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
+    rgb =
+      if n < 5.0
+        lerp_rgb(SCORE_PINK, SCORE_GREY, (n - 1.0) / 4.0)
+      else
+        lerp_rgb(SCORE_GREY, SCORE_TEAL, (n - 5.0) / 5.0)
+      end
 
     "rgb(#{rgb.join(", ")})"
   end
 
+  def lerp_rgb(low, high, ratio)
+    ratio = ratio.clamp(0.0, 1.0)
+    low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
+  end
+
+  # Efficiency is lower-is-better, so flip the scale to keep colour meaning
+  # consistent: a low value (fast/cheap) reads teal, a high value (slow/costly)
+  # reads pink, neutral in the middle.
   def usage_metric_color(value, max)
     ratio = usage_metric_ratio(value, max)
-    return "rgb(145, 151, 160)" if ratio.nil?
+    return "rgb(#{SCORE_GREY.join(", ")})" if ratio.nil?
 
-    low = [145, 151, 160]
-    high = [229, 134, 149]
-    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
-
+    rgb = diverging_rgb(1.0 - ratio)
     "rgb(#{rgb.join(", ")})"
   end
 
+  # Value is higher-is-better, so a high ratio reads teal and a low one pink —
+  # the same convention as scores.
   def value_metric_color(value, max)
     ratio = usage_metric_ratio(value, max)
-    return "rgb(145, 151, 160)" if ratio.nil?
+    return "rgb(#{SCORE_GREY.join(", ")})" if ratio.nil?
 
-    low = [145, 151, 160]
-    high = [82, 166, 156]
-    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
-
+    rgb = diverging_rgb(ratio)
     "rgb(#{rgb.join(", ")})"
+  end
+
+  # Maps a 0..1 goodness ratio onto the pink→grey→teal diverging ramp.
+  def diverging_rgb(ratio)
+    ratio = ratio.clamp(0.0, 1.0)
+    if ratio < 0.5
+      lerp_rgb(SCORE_PINK, SCORE_GREY, ratio / 0.5)
+    else
+      lerp_rgb(SCORE_GREY, SCORE_TEAL, (ratio - 0.5) / 0.5)
+    end
   end
 
   # Gradient custom properties: the warm brand gradient for the wordmark and
