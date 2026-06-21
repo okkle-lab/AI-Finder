@@ -104,7 +104,7 @@ module ApplicationHelper
   def score_bar(label, value)
     pct = value.nil? ? 0 : (value.to_f.clamp(0, 10) * 10).round
     val = value.nil? ? content_tag(:span, "—", class: "score-none") : score_number(value)
-    fill = value.nil? ? "" : tag.span(class: "bar-fill", style: "width: #{pct}%; background: #{score_color(value)}")
+    fill = value.nil? ? "" : tag.span(class: "bar-fill", style: "width: #{pct}%; background: #{score_fill_color(value)}")
 
     content_tag(:div, class: "bar-row") do
       content_tag(:div, class: "bar-top") do
@@ -294,40 +294,79 @@ module ApplicationHelper
     (pairs.sum { |s, w| s * w } / total_w).round(1)
   end
 
-  # Colour scores on a calm grey→pastel-teal scale, calibrated to the real
-  # distribution: 5 is neutral, 7 is the midpoint, and 9+ earns full teal.
+  # Scores fall into three pastel bands so quality reads at a glance: weak
+  # (< 5) red, medium (5–7.5) amber, strong (7.5+) teal-green. Each band pairs a
+  # soft fill (for bars/dots) with a darker shade (for numbers, legible on white)
+  # — red/amber/green mean worse/middling/better everywhere, including the
+  # efficiency and value metrics.
+  SCORE_BANDS = {
+    weak: { fill: [232, 154, 147], text: [163, 61, 45] },
+    medium: { fill: [237, 192, 102], text: [133, 91, 11] },
+    strong: { fill: [98, 179, 148], text: [31, 110, 86] }
+  }.freeze
+
+  def score_band(value)
+    n = value.to_f
+    return :weak if n < 5.0
+    return :medium if n < 7.5
+
+    :strong
+  end
+
+  # Maps a 0..1 goodness ratio (higher = better) onto the same bands, so metrics
+  # share the score thresholds: 7.5/10 and 5/10.
+  def goodness_band(ratio)
+    return :strong if ratio >= 0.75
+    return :medium if ratio >= 0.5
+
+    :weak
+  end
+
+  # Darker shade — for score numbers and other text on white.
   def score_color(value)
     return nil if value.nil?
 
-    n = value.to_f.clamp(1.0, 10.0)
-    ratio = ((n - 5.0) / 4.0).clamp(0.0, 1.0)
-    low = [145, 151, 160]
-    high = [82, 166, 156]
-    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
-
-    "rgb(#{rgb.join(", ")})"
+    "rgb(#{SCORE_BANDS[score_band(value)][:text].join(", ")})"
   end
 
+  # Soft pastel — for bar fills and dots.
+  def score_fill_color(value)
+    return nil if value.nil?
+
+    "rgb(#{SCORE_BANDS[score_band(value)][:fill].join(", ")})"
+  end
+
+  # Efficiency is lower-is-better, so invert the ratio: a low value (fast/cheap)
+  # lands in the strong band.
   def usage_metric_color(value, max)
-    ratio = usage_metric_ratio(value, max)
-    return "rgb(145, 151, 160)" if ratio.nil?
-
-    low = [145, 151, 160]
-    high = [229, 134, 149]
-    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
-
-    "rgb(#{rgb.join(", ")})"
+    band = usage_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
   end
 
+  def usage_metric_fill_color(value, max)
+    band = usage_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
+  end
+
+  # Value is higher-is-better, so the raw ratio maps straight onto the bands.
   def value_metric_color(value, max)
+    band = value_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
+  end
+
+  def value_metric_fill_color(value, max)
+    band = value_metric_band(value, max)
+    band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
+  end
+
+  def usage_metric_band(value, max)
     ratio = usage_metric_ratio(value, max)
-    return "rgb(145, 151, 160)" if ratio.nil?
+    ratio && goodness_band(1.0 - ratio)
+  end
 
-    low = [145, 151, 160]
-    high = [82, 166, 156]
-    rgb = low.zip(high).map { |start, finish| (start + (finish - start) * ratio).round }
-
-    "rgb(#{rgb.join(", ")})"
+  def value_metric_band(value, max)
+    ratio = usage_metric_ratio(value, max)
+    ratio && goodness_band(ratio)
   end
 
   # Gradient custom properties: the warm brand gradient for the wordmark and
@@ -407,7 +446,8 @@ module ApplicationHelper
       value: format_value_metric(value),
       ratio: ratio.round(3),
       width: width,
-      color: value_metric_color(value, max)
+      color: value_metric_color(value, max),
+      fill_color: value_metric_fill_color(value, max)
     }
   end
 
@@ -424,7 +464,8 @@ module ApplicationHelper
       value: formatted_value,
       ratio: ratio.round(3),
       width: width,
-      color: usage_metric_color(value, max)
+      color: usage_metric_color(value, max),
+      fill_color: usage_metric_fill_color(value, max)
     }
   end
 
