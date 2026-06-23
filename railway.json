@@ -6,6 +6,7 @@
   },
   "deploy": {
     "preDeployCommand": "bin/rails db:prepare",
+    "startCommand": "bin/rails server -b 0.0.0.0",
     "healthcheckPath": "/up",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
