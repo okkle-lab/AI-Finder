@@ -198,7 +198,7 @@ class NewsAggregator
 
   def system_prompt(tool_names)
     <<~PROMPT
-      You evaluate AI news stories for AI Finder — a curated site that helps people pick the right AI tools for real tasks.
+      You evaluate AI news stories for Okkle Find — a curated site that helps people pick the right AI tools for real tasks.
 
       PUBLISH if the story does any of these:
       • Changes which tool a user should pick or pay for
@@ -230,7 +230,7 @@ class NewsAggregator
   def tool_schema
     {
       name: TOOL_NAME,
-      description: "Decide whether to publish this AI news story on AI Finder.",
+      description: "Decide whether to publish this AI news story on Okkle Find.",
       input_schema: {
         type: "object",
         properties: {

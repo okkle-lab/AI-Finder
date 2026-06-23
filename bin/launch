@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the AI Finder dev server: install gems if needed, prepare the
+# Start the Okkle Find dev server: install gems if needed, prepare the
 # database, open the browser, then run the Rails server. Stop with Ctrl-C.
 set -euo pipefail
 
@@ -30,7 +30,7 @@ check_database() {
   bundle exec rails ai_finder:verify_seed_data
 }
 
-echo "== AI Finder =="
+echo "== Okkle Find =="
 echo "Working in: $APP_ROOT"
 
 echo "== Checking dependencies =="

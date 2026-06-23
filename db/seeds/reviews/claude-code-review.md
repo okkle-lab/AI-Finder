@@ -2,7 +2,7 @@
 slug: claude-code-review
 tool: Claude
 title: "Claude Code: a hands-on review"
-byline: Reviewed by the AI Finder team
+byline: Reviewed by the Okkle Find team
 rating: 5
 published_at: 2026-06-05 09:00
 ---

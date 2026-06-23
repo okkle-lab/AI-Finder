@@ -26,7 +26,7 @@ compatible_ruby_version() {
 print_ruby_help() {
   cat >&2 <<MSG
 
-AI Finder needs Ruby ${required_major}.${required_minor}.x.
+Okkle Find needs Ruby ${required_major}.${required_minor}.x.
 
 Install the pinned version with:
   rbenv install ${required_ruby}
@@ -56,7 +56,7 @@ if command -v rbenv >/dev/null 2>&1; then
   fi
 elif command -v ruby >/dev/null 2>&1; then
   if ! ruby -e "exit RUBY_VERSION.start_with?('${required_major}.${required_minor}.') ? 0 : 1"; then
-    echo "Found $(ruby -v), but AI Finder needs Ruby ${required_major}.${required_minor}.x." >&2
+    echo "Found $(ruby -v), but Okkle Find needs Ruby ${required_major}.${required_minor}.x." >&2
     print_ruby_help
     exit 1
   fi

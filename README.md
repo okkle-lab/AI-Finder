@@ -1,4 +1,4 @@
-# AI Finder
+# Okkle Find
 
 **A "Search Engine for AI" for individuals.** Type what you need in plain English, get 4–5 honest, human-translated tool recommendations — and the catch with each one.
 
@@ -42,8 +42,8 @@ Browse tiles skip the LLM entirely — a tile already *is* a structured filter.
 
 Requires Ruby 3.3.x and PostgreSQL.
 
-The easiest path on macOS is to double-click `Launch AI Finder.command`. On
-Windows, double-click `Launch AI Finder.bat`. The launcher checks dependencies,
+The easiest path on macOS is to double-click `Launch Okkle Find.command`. On
+Windows, double-click `Launch Okkle Find.bat`. The launcher checks dependencies,
 prepares the database, reapplies the committed seed data, verifies that
 seed-backed catalogue/model metrics are present, starts the Rails server, and opens
 <http://localhost:3000>. The macOS launcher also checks rbenv, uses any

@@ -5,6 +5,11 @@
 class ModelVariant < ApplicationRecord
   include Scoreable
 
+  OVERALL_PERFORMANCE_WEIGHT = 0.8
+  OVERALL_VALUE_WEIGHT = 0.2
+  API_VALUE_FLOOR_PER_DOLLAR = 250.0
+  API_VALUE_CEILING_PER_DOLLAR = 20_000.0
+
   belongs_to :tool, inverse_of: :model_variants
   has_many :evaluation_notes,
     class_name: "ModelEvaluationNote",
@@ -19,11 +24,65 @@ class ModelVariant < ApplicationRecord
     output_quality.present?
   end
 
-  # This model's verdict, using parent tool scores for tool-level categories.
-  def verdict
+  def performance_verdict
     return nil unless scored?
 
     verdict_with(extra_scores: tool.rubric_field_values)
+  end
+
+  # The headline model score: mostly performance, with token-priced value as a
+  # smaller adjustment when usage and API pricing data are available.
+  def verdict
+    overall_score(raw_score: performance_verdict)
+  end
+
+  def overall_score(raw_score:)
+    return nil if raw_score.nil?
+
+    value_score = value_overall_score(raw_score:)
+    return raw_score.to_f if value_score.nil?
+
+    (
+      raw_score.to_f * OVERALL_PERFORMANCE_WEIGHT +
+      value_score * OVERALL_VALUE_WEIGHT
+    ).clamp(1.0, 10.0)
+  end
+
+  def performance_per_1k_tokens(raw_score: performance_verdict)
+    tokens = numeric(avg_total_tokens)
+    return nil if raw_score.nil? || tokens.nil? || tokens <= 0
+
+    raw_score.to_f / tokens * 1_000.0
+  end
+
+  def api_cost_per_run
+    tokens = numeric(avg_total_tokens)
+    price = api_blended_price_per_million
+    return nil if tokens.nil? || tokens <= 0 || price.nil? || price <= 0
+
+    tokens / 1_000_000.0 * price
+  end
+
+  def api_performance_per_dollar(raw_score: performance_verdict)
+    cost = api_cost_per_run
+    return nil if raw_score.nil? || cost.nil? || cost <= 0
+
+    raw_score.to_f / cost
+  end
+
+  def api_performance_per_dollar_score(raw_score: performance_verdict)
+    metric = api_performance_per_dollar(raw_score:)
+    return nil if metric.nil?
+
+    log_value_score(
+      metric,
+      floor: API_VALUE_FLOOR_PER_DOLLAR,
+      ceiling: API_VALUE_CEILING_PER_DOLLAR
+    )
+  end
+
+  def value_overall_score(raw_score: performance_verdict)
+    api_performance_per_dollar_score(raw_score:)
   end
 
   # "$3 in / $15 out per 1M tokens" — mirrors Tool#price_summary.
@@ -42,6 +101,29 @@ class ModelVariant < ApplicationRecord
   end
 
   private
+
+  def log_value_score(value, floor:, ceiling:)
+    return nil if value.nil? || value <= 0 || floor <= 0 || ceiling <= floor
+
+    bounded = value.to_f.clamp(floor, ceiling)
+    ratio = (Math.log(bounded) - Math.log(floor)) / (Math.log(ceiling) - Math.log(floor))
+    (1.0 + ratio * 9.0).clamp(1.0, 10.0)
+  end
+
+  def api_blended_price_per_million
+    prices = [input_usd_per_m, output_usd_per_m].filter_map { |price| numeric(price) }
+    return nil if prices.empty?
+
+    prices.sum / prices.size
+  end
+
+  def numeric(value)
+    return nil if value.blank?
+
+    Float(value)
+  rescue ArgumentError, TypeError
+    nil
+  end
 
   # Trim trailing zeros so a decimal(12,4) column reads "$3", not "$3.0000".
   def format_price(value)
