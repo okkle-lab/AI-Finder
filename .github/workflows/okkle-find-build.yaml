@@ -30,10 +30,14 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ~> 3.3.0
+          ruby-version: 3.3.11
           bundler-cache: true
 
       - name: Build Ruby assets
+        env:
+          RAILS_ENV: production
+          SECRET_KEY_BASE_DUMMY: 1
+        run: bundle exec rails assets:precompile
 # uncomment the following lines if you want to add environment variables for this step
 #        env:
 #          MY_ENV_VAR: value-for-my-env-var
