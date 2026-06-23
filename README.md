@@ -2,7 +2,7 @@
 
 **A "Search Engine for AI" for individuals.** Type what you need in plain English, get 4–5 honest, human-translated tool recommendations — and the catch with each one.
 
-> Status: v1 prototype. Runs locally; deployment deferred. Search works today via a keyword parser, with an LLM parser that activates automatically when an Anthropic API key + credit are present.
+> Status: v1 prototype. Runs locally, with Railway deployment config checked in. Search works today via a keyword parser, with an LLM parser that activates automatically when an Anthropic API key + credit are present.
 
 ---
 
@@ -72,6 +72,12 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 Get a key at <https://console.anthropic.com> (pay-as-you-go; the parse is a few hundred Haiku tokens per search — pennies). The key is read at boot by `config/initializers/load_dotenv.rb`.
 
+## Deployment
+
+Railway deployment is configured through `railway.json` and the project
+`Dockerfile`. See [`docs/railway.md`](docs/railway.md) for the Railway project
+setup steps and required environment variables.
+
 ## Catalogue
 
 The catalogue is seeded from `db/seeds/ai_tool_catalogue_text_models.csv`. Regenerate the CSV from source data with:
@@ -97,7 +103,7 @@ House rules: a wrong "free"/"private" label is worse than none — when unsure, 
 
 ## Not yet (deliberately deferred)
 
-User accounts · a real ranking algorithm (weighted-random stands in) · admin UI (edit via seed/console) · deployment.
+User accounts · a real ranking algorithm (weighted-random stands in) · admin UI (edit via seed/console).
 
 ## Versioning & changelog
 
