@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions
 
-rem Double-click this file in File Explorer to launch the AI Finder dev server.
+rem Double-click this file in File Explorer to launch the Okkle Find dev server.
 rem It opens your browser automatically once Rails is ready.
 
 cd /d "%~dp0" || goto :error
@@ -10,7 +10,7 @@ if not defined PORT set "PORT=3000"
 set "URL=http://localhost:%PORT%"
 set "AI_FINDER_URL=%URL%"
 
-echo == AI Finder ==
+echo == Okkle Find ==
 echo Working in: %CD%
 
 where bundle >NUL 2>NUL

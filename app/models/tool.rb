@@ -89,7 +89,8 @@ class Tool < ApplicationRecord
 
   def broad_overall_result
     candidates = model_variants.filter_map do |variant|
-      score = broad_overall_score_for(variant.category_scores(extra_scores: rubric_field_values))
+      raw_score = broad_overall_score_for(variant.category_scores(extra_scores: rubric_field_values))
+      score = variant.overall_score(raw_score:) if raw_score
       BroadOverallResult.new(tool: self, model_variant: variant, score:) if score
     end
     best = candidates.max_by(&:score)

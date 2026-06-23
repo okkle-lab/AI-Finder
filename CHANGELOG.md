@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to AI Finder are documented here. The format is based on
+All notable changes to Okkle Find are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project follows
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor versions may include
 breaking changes).
@@ -8,7 +8,7 @@ breaking changes).
 ## [Unreleased]
 
 ### Added
-- Added a double-clickable Windows launcher (`Launch AI Finder.bat`) that mirrors
+- Added a double-clickable Windows launcher (`Launch Okkle Find.bat`) that mirrors
   the macOS launcher by checking gems, preparing the database, starting Rails,
   and opening the local app in a browser.
 - Model Eval Runner 1.1.4 adds an OpenRouter reasoning-effort override so
@@ -141,7 +141,7 @@ breaking changes).
 ## [0.4.0] — 2026-06-16
 
 ### Added
-- Added a double-clickable macOS launcher (`Launch AI Finder.command`) backed by
+- Added a double-clickable macOS launcher (`Launch Okkle Find.command`) backed by
   `bin/launch`, which checks dependencies, prepares the database, starts the
   Rails server, and opens the app in a browser.
 - Search ranking now uses the user's inferred intent: the parser can identify a

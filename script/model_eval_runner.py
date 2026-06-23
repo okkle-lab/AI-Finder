@@ -260,7 +260,7 @@ def default_config() -> dict[str, Any]:
                 "type": "openai_compatible",
                 "base_url": "https://openrouter.ai/api/v1",
                 "api_key_env": "OPENROUTER_API_KEY",
-                "extra_headers": {"X-Title": "AI Finder Model Evaluation"},
+                "extra_headers": {"X-Title": "Okkle Find Model Evaluation"},
             },
             "openai": {
                 "type": "openai_compatible",

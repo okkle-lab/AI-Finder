@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for?(:title) ? yield(:title) : "AI Finder — Google for AI" %></title>
+    <title><%= content_for?(:title) ? yield(:title) : "Okkle Find — Google for AI" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -18,7 +18,7 @@
     <header class="site-header<%= " site-header--home" if content_for?(:home_header) %>"
             data-controller="header-search"
             data-header-search-home-value="<%= content_for?(:home_header) %>">
-      <a href="/" class="brand">AI&nbsp;Finder</a>
+      <a href="/" class="brand">Okkle&nbsp;Find</a>
       <div class="header-search<%= " header-search--available" unless content_for?(:home_header) %>"
            data-header-search-target="container">
         <%= form_with url: search_path,
@@ -56,7 +56,7 @@
     </main>
     <footer class="site-footer">
       A small, honest catalogue. Prices and privacy facts change — always double-check on the tool's own site.
-      <span class="site-version">AI Finder v<%= AiFinder::VERSION %></span>
+      <span class="site-version">Okkle Find v<%= AiFinder::VERSION %></span>
     </footer>
   </body>
 </html>

@@ -8,23 +8,6 @@ module ApplicationHelper
   # Cool gradient (pink -> purple -> blue) used for the soft glow and hover
   # shadows, distinct from the warm brand gradient.
   GLOW_GRADIENT = %w[#ec4565 #8d6fd1 #53aaf6].freeze
-  PRODUCT_SUBSCRIPTION_MONTHLY_USD = {
-    "ChatGPT" => 20.0,
-    "Claude" => 20.0,
-    "Google Gemini" => 19.99,
-    "Microsoft Copilot" => 19.99,
-    "Perplexity" => 20.0,
-    "GitHub Copilot" => 10.0,
-    "Cursor" => 20.0,
-    "Mistral Le Chat" => 14.99,
-    "DeepL" => 8.74,
-    "Grammarly" => 30.0,
-    "Jasper" => 69.0,
-    "Otter.ai" => 16.99,
-    "Poe" => 4.17,
-    "xAI Grok" => 30.0
-  }.freeze
-
   def session_gradient_palettes
     SESSION_GRADIENTS
   end
@@ -203,23 +186,32 @@ module ApplicationHelper
     selected_variant = selected_model_variant || tool.best_model_variant || variants_with_metrics.first
     return nil unless selected_variant
 
-    api_values = variants.index_with { |variant| api_performance_per_dollar(variant) }.compact
-    plan_values = variants.index_with { |variant| plan_performance_per_dollar(tool, variant) }.compact
+    token_values = variants.index_with { |variant| variant.performance_per_1k_tokens }.compact
+    api_values = variants.index_with { |variant| variant.api_performance_per_dollar }.compact
+    overall_values = variants.index_with { |variant| variant.value_overall_score }.compact
 
     metrics = [
       value_metric_payload(
+        kind: "overall",
+        label: "Overall value score",
+        icon: "sparkles",
+        value: overall_values[selected_variant],
+        max: 10.0,
+        score: true
+      ),
+      value_metric_payload(
+        kind: "tokens",
+        label: "Performance per 1k tokens",
+        icon: "trend-up",
+        value: token_values[selected_variant],
+        max: token_values.values.max
+      ),
+      value_metric_payload(
         kind: "api",
-        label: "API performance per $",
+        label: "Performance per $",
         icon: "currency-dollar",
         value: api_values[selected_variant],
         max: api_values.values.max
-      ),
-      value_metric_payload(
-        kind: "plan",
-        label: "Plan performance per $",
-        icon: "credit-card",
-        value: plan_values[selected_variant],
-        max: plan_values.values.max
       )
     ].compact
 
@@ -579,51 +571,13 @@ module ApplicationHelper
     usage_metric_number(variant.avg_latency_seconds).present? || usage_metric_number(variant.avg_total_tokens).present?
   end
 
-  def model_value_metrics_present?(tool, variant)
-    api_performance_per_dollar(variant).present? || plan_performance_per_dollar(tool, variant).present?
+  def model_value_metrics_present?(_tool, variant)
+    variant.value_overall_score.present? ||
+      variant.performance_per_1k_tokens.present? ||
+      variant.api_performance_per_dollar.present?
   end
 
-  def api_performance_per_dollar(variant)
-    score = usage_metric_number(variant.verdict)
-    avg_tokens = usage_metric_number(variant.avg_total_tokens)
-    blended_price = api_blended_price_per_million(variant)
-    return nil if score.nil? || avg_tokens.nil? || blended_price.nil? || blended_price <= 0
-
-    estimated_call_cost = avg_tokens / 1_000_000.0 * blended_price
-    return nil unless estimated_call_cost.positive?
-
-    score / estimated_call_cost
-  end
-
-  def plan_performance_per_dollar(tool, variant)
-    score = usage_metric_number(variant.verdict)
-    monthly_cost = subscription_monthly_cost(tool)
-    return nil if score.nil? || monthly_cost.nil? || monthly_cost <= 0
-
-    score / monthly_cost
-  end
-
-  def api_blended_price_per_million(variant)
-    prices = [variant.input_usd_per_m, variant.output_usd_per_m].filter_map { |price| usage_metric_number(price) }
-    return nil if prices.empty?
-
-    prices.sum / prices.size
-  end
-
-  def subscription_monthly_cost(tool)
-    configured = PRODUCT_SUBSCRIPTION_MONTHLY_USD[tool.name]
-    return configured if configured.present?
-    return nil unless tool.price_low_usd.present?
-    return nil unless monthly_pricing_unit?(tool.pricing_unit)
-
-    usage_metric_number(tool.price_low_usd)
-  end
-
-  def monthly_pricing_unit?(unit)
-    unit.blank? || unit.to_s.match?(/mo|month/i)
-  end
-
-  def value_metric_payload(kind:, label:, icon:, value:, max:)
+  def value_metric_payload(kind:, label:, icon:, value:, max:, score: false)
     return nil if value.nil? || max.nil? || max <= 0
 
     ratio = usage_metric_ratio(value, max) || 0
@@ -633,7 +587,7 @@ module ApplicationHelper
       kind: kind,
       label: label,
       icon: icon,
-      value: format_value_metric(value),
+      value: score ? score_number(value) : format_value_metric(value),
       ratio: ratio.round(3),
       width: width,
       color: value_metric_color(value, max),

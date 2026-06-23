@@ -343,6 +343,8 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     get tool_path(tool, model_variant: fast.id)
 
     assert_response :success
+    assert_select ".detail-band-score .dbs-num", /8\.1/
+    assert_select ".detail-band-score .dbs-cap", "Overall"
     assert_operator response.body.index("cat-bars-shell"), :<, response.body.index("value-metrics")
     assert_operator response.body.index("value-metrics"), :<, response.body.index('aria-label="Efficiency"')
     assert_select ".value-metrics"
@@ -351,16 +353,23 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".value-metrics-sub", "Higher is better"
     assert_select ".value-metrics-list[data-controller='score-bars'][data-score-bars-scope-value='tool-value-#{tool.id}'][data-value-metric-model='#{fast.id}']"
     assert_select ".value-metrics-list[data-value-metric-model='#{slow.id}']", false
-    assert_select ".value-bar-row.cat-bar-row", count: 2
+    assert_select ".value-bar-row.cat-bar-row", count: 3
+    assert_select ".value-bar-row[data-value-metric-kind='overall'][data-value-metric-icon='sparkles']"
+    assert_select ".value-bar-row[data-value-metric-kind='tokens'][data-value-metric-icon='trend-up'][data-value-metric-ratio='1.0']"
     assert_select ".value-bar-row[data-value-metric-kind='api'][data-value-metric-icon='currency-dollar'][data-value-metric-ratio='1.0']"
-    assert_select ".value-bar-row[data-value-metric-kind='plan'][data-value-metric-icon='credit-card'][data-value-metric-ratio='0.889']"
+    assert_select ".value-bar-row[data-value-metric-kind='plan']", false
+    assert_select ".value-bar-fill[data-score-bars-target='fill'][data-score-bars-key='value-overall']"
+    assert_select ".value-bar-fill[data-score-bars-target='fill'][data-score-bars-key='value-tokens'][data-score-bars-width='100']"
     assert_select ".value-bar-fill[data-score-bars-target='fill'][data-score-bars-key='value-api'][data-score-bars-width='100']"
-    assert_select ".value-bar-fill[data-score-bars-target='fill'][data-score-bars-key='value-plan'][data-score-bars-width='89']"
-    assert_select ".value-bar-ic svg.icon", count: 2
-    assert_select ".value-bar-name", "API performance per $"
-    assert_select ".value-bar-name", "Plan performance per $"
+    assert_select ".value-bar-fill[data-score-bars-key='value-plan']", false
+    assert_select ".value-bar-ic svg.icon", count: 3
+    assert_select ".value-bar-name", "Overall value score"
+    assert_select ".value-bar-name", "Performance per 1k tokens"
+    assert_select ".value-bar-name", "Performance per $"
+    assert_select ".value-bar-name", { text: "Plan performance per $", count: 0 }
+    assert_select ".value-bar-value", "8.6"
+    assert_select ".value-bar-value", "20.0"
     assert_select ".value-bar-value", "10k"
-    assert_select ".value-bar-value", "0.40"
   ensure
     Rails.configuration.x.features.model_value_metrics = original
   end

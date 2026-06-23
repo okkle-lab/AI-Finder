@@ -97,6 +97,66 @@ class ToolRankingTest < ActiveSupport::TestCase
     assert_in_delta 6.9, tool.overall_verdict, 0.05
   end
 
+  test "model variants expose token usage and token-priced dollar metrics" do
+    tool = Tool.new(name: "Value Measured", price_low_usd: 20)
+    variant = tool.model_variants.build(name: "v1",
+      coding_speed_score: 8,
+      coding_accuracy_score: 8,
+      input_usd_per_m: 1,
+      output_usd_per_m: 3,
+      avg_total_tokens: 400)
+
+    assert_equal 8.0, variant.performance_verdict
+    assert_in_delta 20.0, variant.performance_per_1k_tokens, 0.01
+    assert_in_delta 10_000.0, variant.api_performance_per_dollar, 0.01
+    expected_value_score = variant.api_performance_per_dollar_score
+    assert_in_delta expected_value_score, variant.value_overall_score, 0.01
+    expected_overall =
+      variant.performance_verdict * ModelVariant::OVERALL_PERFORMANCE_WEIGHT +
+      expected_value_score * ModelVariant::OVERALL_VALUE_WEIGHT
+    assert_in_delta expected_overall, variant.verdict, 0.01
+  end
+
+  test "cheap token pricing improves but does not dominate overall score" do
+    tool = Tool.new(name: "DeepSeek")
+    variant = tool.model_variants.build(name: "v1",
+      coding_speed_score: 8,
+      coding_accuracy_score: 8,
+      input_usd_per_m: 0.14,
+      output_usd_per_m: 0.28,
+      avg_total_tokens: 1_000)
+
+    assert_equal 10.0, variant.value_overall_score
+    assert_in_delta 8.4, variant.verdict, 0.01
+  end
+
+  test "overall score falls back to raw performance when value data is missing" do
+    variant = coding_tool.model_variants.first
+
+    assert_equal variant.performance_verdict, variant.verdict
+  end
+
+  test "overall verdict can prefer the better value model when performance ties" do
+    tool = Tool.new(name: "Value Tie Breaker")
+    efficient = tool.model_variants.build(name: "Efficient",
+      coding_speed_score: 8,
+      coding_accuracy_score: 8,
+      input_usd_per_m: 1,
+      output_usd_per_m: 1,
+      avg_total_tokens: 500)
+    expensive = tool.model_variants.build(name: "Expensive",
+      coding_speed_score: 8,
+      coding_accuracy_score: 8,
+      input_usd_per_m: 20,
+      output_usd_per_m: 20,
+      avg_total_tokens: 3_000)
+
+    assert_equal efficient.performance_verdict, expensive.performance_verdict
+    assert_operator efficient.verdict, :>, expensive.verdict
+    assert_equal efficient, tool.best_model_variant
+    assert_equal efficient.verdict.round(1), tool.overall_verdict
+  end
+
   test "broad overall score requires every core generalist category" do
     specialist = Tool.new(name: "Audio Specialist")
     specialist.model_variants.build(name: "v1", transcription_score: 10)
