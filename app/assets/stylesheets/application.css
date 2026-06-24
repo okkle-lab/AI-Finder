@@ -1530,6 +1530,12 @@ textarea.admin-input { resize: vertical; }
 .metric-tile-chip-strong { color: rgb(31, 110, 86); background: #e4f3ec; }
 .metric-tile-chip-medium { color: rgb(133, 91, 11); background: #fbf0d6; }
 .metric-tile-chip-weak { color: rgb(163, 61, 45); background: #fae8e5; }
+/* Band text colour for bare numbers (scores, efficiency values). Light mode
+   uses the dark band shade; dark mode lifts to the brighter pastel so the
+   numbers stay legible on the dark surface. */
+.band-text-strong { color: rgb(31, 110, 86); }
+.band-text-medium { color: rgb(133, 91, 11); }
+.band-text-weak { color: rgb(163, 61, 45); }
 .cat-breakdown-foot { margin: 1.1rem 0 0; font-size: 0.88rem; }
 .score-empty { margin: 0; color: var(--muted); font-size: 0.92rem; }
 @media (max-width: 560px) {
@@ -2122,6 +2128,9 @@ textarea.admin-input { resize: vertical; }
     background: color-mix(in srgb, var(--brand) 26%, #1f1f1f);
   }
   .metric-tile { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
+  .band-text-strong { color: rgb(98, 179, 148); }
+  .band-text-medium { color: rgb(237, 192, 102); }
+  .band-text-weak { color: rgb(232, 154, 147); }
   .site-nav-link { color: var(--body); }
   .site-nav-link:hover { background: rgba(255, 255, 255, 0.07); }
   .site-nav-cta { background: #303836; color: var(--score-ink); border-color: var(--score-pill-line); }

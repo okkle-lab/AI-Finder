@@ -234,8 +234,8 @@ module ApplicationHelper
 
     unit = selected_variant.pricing_unit.presence || "per 1M tokens"
     metrics = [
-      pricing_metric_payload(kind: "input", label: "Input", icon: "currency-dollar", value: selected_variant.input_usd_per_m),
-      pricing_metric_payload(kind: "output", label: "Output", icon: "credit-card", value: selected_variant.output_usd_per_m)
+      pricing_metric_payload(kind: "input", label: "Input (prompt)", icon: "currency-dollar", value: selected_variant.input_usd_per_m),
+      pricing_metric_payload(kind: "output", label: "Output (response)", icon: "credit-card", value: selected_variant.output_usd_per_m)
     ].compact
 
     {
@@ -514,6 +514,17 @@ module ApplicationHelper
     :strong
   end
 
+  # CSS class for the red/amber/green band text colour. Prefer this over the
+  # inline score_color on surfaces that need to stay legible in dark mode —
+  # inline styles can't be overridden by the theme, the class can.
+  def band_text_class(band)
+    band && "band-text-#{band}"
+  end
+
+  def score_band_class(value)
+    value.nil? ? nil : band_text_class(score_band(value))
+  end
+
   # Maps a 0..1 goodness ratio (higher = better) onto the same bands, so metrics
   # share the score thresholds: 7.5/10 and 5/10.
   def goodness_band(ratio)
@@ -640,8 +651,7 @@ module ApplicationHelper
       icon: icon,
       value: formatted_value,
       band: band,
-      qualifier: usage_metric_qualifier(kind, band),
-      color: band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
+      qualifier: usage_metric_qualifier(kind, band)
     }
   end
 

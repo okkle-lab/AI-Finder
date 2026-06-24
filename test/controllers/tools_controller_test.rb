@@ -306,8 +306,8 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".metric-tile[data-usage-metric-kind='tokens'] .metric-tile-chip.metric-tile-chip-medium", "Average"
     assert_select ".metric-tile-value", "2.0"
     assert_select ".metric-tile-value", "400"
-    assert_select ".metric-tile[data-usage-metric-kind='time'] .metric-tile-value[style*='rgb(31, 110, 86)']"
-    assert_select ".metric-tile[data-usage-metric-kind='tokens'] .metric-tile-value[style*='rgb(133, 91, 11)']"
+    assert_select ".metric-tile[data-usage-metric-kind='time'] .metric-tile-value.band-text-strong"
+    assert_select ".metric-tile[data-usage-metric-kind='tokens'] .metric-tile-value.band-text-medium"
     assert_select ".metric-tile-value", { text: "2.0s", count: 0 }
     assert_select ".metric-tile-value", { text: "400 tokens", count: 0 }
     assert_select ".metric-tile-value", { text: "8.0s", count: 0 }
@@ -319,8 +319,8 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".usage-metrics[aria-label='Pricing'] .metric-tile", count: 2
     assert_select ".metric-tile[data-pricing-metric-kind='input'] .metric-tile-value", "$1"
     assert_select ".metric-tile[data-pricing-metric-kind='output'] .metric-tile-value", "$3"
-    assert_select ".metric-tile[data-pricing-metric-kind='input'] .metric-tile-name", "Input"
-    assert_select ".metric-tile[data-pricing-metric-kind='output'] .metric-tile-name", "Output"
+    assert_select ".metric-tile[data-pricing-metric-kind='input'] .metric-tile-name", "Input (prompt)"
+    assert_select ".metric-tile[data-pricing-metric-kind='output'] .metric-tile-name", "Output (response)"
   end
 
   test "product page shows value metrics when value flag is enabled" do
@@ -362,7 +362,7 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_operator response.body.index("Availability &amp; data"), :<, response.body.index("The full specs")
     assert_select ".performance-bar-fill.cat-bar-fill[data-score-bars-target='fill'][data-score-bars-key='coding'][data-score-bars-width='80']"
     assert_select ".performance-bar-fill[style*='background']", false
-    assert_select ".performance-bar-score[style*='color: rgb(31, 110, 86)']", "8"
+    assert_select ".performance-bar-score.band-text-strong", "8"
     assert_select ".models-block .specs-title", "Models & pricing"
     assert_select ".models-block .models-name", "Fast Model"
     assert_select ".models-block td", "$1 in / $3 out"
