@@ -21,6 +21,7 @@ jobs:
       - name: Fetch project data
         uses: ionos-deploy-now/project-action@v1
         id: project
+        continue-on-error: true
         with:
           api-key: ${{ secrets.IONOS_API_KEY }}
           service-host: api-us.ionos.space
