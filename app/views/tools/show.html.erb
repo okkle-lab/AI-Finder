@@ -116,7 +116,7 @@
                         style="width: <%= score_width %>%"
                       ></span>
                     </span>
-                    <span class="cat-bar-score performance-bar-score"><%= score_or_dash(cat_score) %></span>
+                    <span class="cat-bar-score performance-bar-score" style="color: <%= score_color(cat_score) %>"><%= score_or_dash(cat_score) %></span>
                     </summary>
                     <% unless scores_unavailable %>
                       <div class="cat-subpanel">
@@ -204,7 +204,7 @@
                         >
                           <span class="usage-stat-ic"><%= icon(metric[:icon], size: 16) %></span>
                           <span class="usage-stat-name"><%= metric[:label] %></span>
-                          <span class="usage-stat-value"><%= metric[:value] %></span>
+                          <span class="usage-stat-value" style="color: <%= metric[:color] %>"><%= metric[:value] %></span>
                           <% if metric[:qualifier] %>
                             <span class="usage-stat-chip usage-stat-chip-<%= metric[:band] %>"><%= metric[:qualifier] %></span>
                           <% end %>

@@ -598,7 +598,8 @@ module ApplicationHelper
       icon: icon,
       value: formatted_value,
       band: band,
-      qualifier: usage_metric_qualifier(kind, band)
+      qualifier: usage_metric_qualifier(kind, band),
+      color: band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
     }
   end
 

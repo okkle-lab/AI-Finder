@@ -306,6 +306,8 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".usage-stat[data-usage-metric-kind='tokens'] .usage-stat-chip.usage-stat-chip-medium", "Average"
     assert_select ".usage-stat-value", "2.0"
     assert_select ".usage-stat-value", "400"
+    assert_select ".usage-stat[data-usage-metric-kind='time'] .usage-stat-value[style*='rgb(31, 110, 86)']"
+    assert_select ".usage-stat[data-usage-metric-kind='tokens'] .usage-stat-value[style*='rgb(133, 91, 11)']"
     assert_select ".usage-stat-value", { text: "2.0s", count: 0 }
     assert_select ".usage-stat-value", { text: "400 tokens", count: 0 }
     assert_select ".usage-stat-value", { text: "8.0s", count: 0 }
