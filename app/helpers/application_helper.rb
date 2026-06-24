@@ -223,6 +223,30 @@ module ApplicationHelper
     }
   end
 
+  # Per-selected-variant API pricing, in the same tile shape as the usage row.
+  # Prices are shown as plain numbers (no band chip): a higher price usually
+  # means a premium model, not a worse one, so a red/green verdict would mislead.
+  def model_pricing_metric_row(tool, selected_model_variant: nil)
+    variants = tool.model_variants.ordered
+    variants_with_pricing = variants.select { |variant| model_pricing_present?(variant) }
+    selected_variant = selected_model_variant || tool.best_model_variant || variants_with_pricing.first
+    return nil unless selected_variant
+
+    unit = selected_variant.pricing_unit.presence || "per 1M tokens"
+    metrics = [
+      pricing_metric_payload(kind: "input", label: "Input (prompt)", icon: "currency-dollar", value: selected_variant.input_usd_per_m),
+      pricing_metric_payload(kind: "output", label: "Output (response)", icon: "credit-card", value: selected_variant.output_usd_per_m)
+    ].compact
+
+    {
+      variant: selected_variant,
+      unit: unit,
+      fallback: selected_model_variant.nil?,
+      unavailable: metrics.empty?,
+      metrics: metrics
+    }
+  end
+
   def score_category_display_name(name)
     name.to_s.casecmp("Accuracy & trustworthiness").zero? ? "Trustworthiness" : name
   end
@@ -474,6 +498,13 @@ module ApplicationHelper
     time: 60.0,
     tokens: 3_500.0
   }.freeze
+  # One-word verdicts per efficiency metric, keyed by goodness band. The chip
+  # carries the colour signal so the raw number stays high-contrast in both
+  # themes — a bar length would imply a meaningful max these metrics don't have.
+  USAGE_METRIC_QUALIFIERS = {
+    time: { strong: "Fast", medium: "Average", weak: "Slow" },
+    tokens: { strong: "Lean", medium: "Average", weak: "Heavy" }
+  }.freeze
 
   def score_band(value)
     n = value.to_f
@@ -481,6 +512,17 @@ module ApplicationHelper
     return :medium if n < 7.5
 
     :strong
+  end
+
+  # CSS class for the red/amber/green band text colour. Prefer this over the
+  # inline score_color on surfaces that need to stay legible in dark mode —
+  # inline styles can't be overridden by the theme, the class can.
+  def band_text_class(band)
+    band && "band-text-#{band}"
+  end
+
+  def score_band_class(value)
+    value.nil? ? nil : band_text_class(score_band(value))
   end
 
   # Maps a 0..1 goodness ratio (higher = better) onto the same bands, so metrics
@@ -506,16 +548,12 @@ module ApplicationHelper
     "rgb(#{SCORE_BANDS[score_band(value)][:fill].join(", ")})"
   end
 
-  # Efficiency is lower-is-better, so invert the ratio: a low value (fast/cheap)
-  # lands in the strong band.
-  def usage_metric_color(value, max)
-    band = usage_metric_band(value, max)
-    band && "rgb(#{SCORE_BANDS[band][:text].join(", ")})"
-  end
+  # The one-word verdict for an efficiency metric ("Fast"/"Lean"/…), or nil when
+  # the metric has no band (missing value).
+  def usage_metric_qualifier(kind, band)
+    return nil unless band
 
-  def usage_metric_fill_color(value, max)
-    band = usage_metric_band(value, max)
-    band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
+    USAGE_METRIC_QUALIFIERS.dig(kind.to_sym, band)
   end
 
   # Value is higher-is-better, so the raw ratio maps straight onto the bands.
@@ -529,6 +567,8 @@ module ApplicationHelper
     band && "rgb(#{SCORE_BANDS[band][:fill].join(", ")})"
   end
 
+  # Efficiency is lower-is-better, so invert the ratio: a low value (fast/cheap)
+  # lands in the strong band.
   def usage_metric_band(value, max)
     ratio = usage_metric_ratio(value, max)
     ratio && goodness_band(1.0 - ratio)
@@ -565,6 +605,24 @@ module ApplicationHelper
       variant.api_performance_per_dollar.present?
   end
 
+  def model_pricing_present?(variant)
+    usage_metric_number(variant.input_usd_per_m).present? ||
+      usage_metric_number(variant.output_usd_per_m).present?
+  end
+
+  def pricing_metric_payload(kind:, label:, icon:, value:)
+    number = usage_metric_number(value)
+    return nil if number.nil?
+
+    formatted = (number % 1).zero? ? number.to_i.to_s : number.to_s
+    {
+      kind: kind,
+      label: label,
+      icon: icon,
+      value: "$#{formatted}"
+    }
+  end
+
   def value_metric_payload(kind:, label:, icon:, value:, max:, score: false)
     return nil if value.nil? || max.nil? || max <= 0
 
@@ -586,18 +644,14 @@ module ApplicationHelper
   def usage_metric_payload(kind:, label:, icon:, value:, max:, formatted_value:)
     return nil if value.nil? || formatted_value.nil?
 
-    ratio = usage_metric_ratio(value, max) || 0
-    width = ratio.zero? ? 0 : [(ratio * 100).round, 4].max
-
+    band = usage_metric_band(value, max)
     {
       kind: kind,
       label: label,
       icon: icon,
       value: formatted_value,
-      ratio: ratio.round(3),
-      width: width,
-      color: usage_metric_color(value, max),
-      fill_color: usage_metric_fill_color(value, max)
+      band: band,
+      qualifier: usage_metric_qualifier(kind, band)
     }
   end
 
