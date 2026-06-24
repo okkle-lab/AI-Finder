@@ -15,17 +15,34 @@ jobs:
     name: check readiness
     runs-on: ubuntu-latest
     outputs:
-      deployment-enabled: ${{ fromJson(steps.project.outputs.info).deployment-enabled }}
-      branch-id: ${{ fromJson(steps.project.outputs.info).branch-id }}
+      deployment-enabled: ${{ steps.project-info.outputs.deployment-enabled }}
+      branch-id: ${{ steps.project-info.outputs.branch-id }}
     steps:
       - name: Fetch project data
         uses: ionos-deploy-now/project-action@v1
         id: project
+        continue-on-error: true
         with:
           api-key: ${{ secrets.IONOS_API_KEY }}
           service-host: api-us.ionos.space
           project-id: d8e9d413-4a70-49f0-b375-e4a0a4aed76f
           action: retrieve-info
+
+      - name: Normalize project data
+        id: project-info
+        if: ${{ always() }}
+        shell: bash
+        env:
+          PROJECT_INFO: ${{ steps.project.outputs.info }}
+        run: |
+          if [[ -z "$PROJECT_INFO" ]] || ! jq -e . >/dev/null 2>&1 <<< "$PROJECT_INFO"; then
+            echo "deployment-enabled=false" >> "$GITHUB_OUTPUT"
+            echo "branch-id=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "deployment-enabled=$(jq -r '."deployment-enabled" // false' <<< "$PROJECT_INFO")" >> "$GITHUB_OUTPUT"
+          echo "branch-id=$(jq -r '."branch-id" // ""' <<< "$PROJECT_INFO")" >> "$GITHUB_OUTPUT"
 
 
   build:
