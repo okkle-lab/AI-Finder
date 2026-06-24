@@ -26,7 +26,7 @@
     </div>
     <% if (v = @tool.overall_verdict) %>
       <div class="detail-band-score">
-        <span class="dbs-num" style="color: <%= score_color(v) %>"><%= score_number(v) %><span class="dbs-den">/10</span></span>
+        <span class="dbs-num" style="color: var(--brand)"><%= score_number(v) %><span class="dbs-den">/10</span></span>
         <span class="dbs-cap">Overall</span>
       </div>
     <% end %>
@@ -100,7 +100,6 @@
                 <% display_breakdown.each do |cat| %>
                   <% cat_score = cat[:score] %>
                   <% score_width = cat_score ? (cat_score * 10).round : 0 %>
-                  <% score_fill = score_fill_color(cat_score) || "transparent" %>
                   <details
                     class="cat-score-category<%= " cat-score-category-unavailable" if cat[:unavailable_message].present? %>"
                     data-score-category-accordion-target="item"
@@ -110,14 +109,14 @@
                     <span class="cat-bar-name"><%= cat[:display_name] %></span>
                     <span class="cat-bar-track">
                       <span
-                        class="cat-bar-fill"
+                        class="cat-bar-fill performance-bar-fill"
                         data-score-bars-target="fill"
                         data-score-bars-key="<%= cat[:key] %>"
                         data-score-bars-width="<%= score_width %>"
-                        style="width: <%= score_width %>%; background: <%= score_fill %>"
+                        style="width: <%= score_width %>%"
                       ></span>
                     </span>
-                    <span class="cat-bar-score" style="color: <%= score_color(cat_score) %>"><%= score_or_dash(cat_score) %></span>
+                    <span class="cat-bar-score performance-bar-score"><%= score_or_dash(cat_score) %></span>
                     </summary>
                     <% unless scores_unavailable %>
                       <div class="cat-subpanel">
@@ -236,6 +235,10 @@
       </section>
     <% end %>
   <% end %>
+
+  <%= render "models_pricing", tool: @tool, variants: @model_variants %>
+  <%= render "facts", tool: @tool %>
+  <%= render "full_specs", tool: @tool %>
 
   <% if @tool.website_url.present? %>
     <p class="detail-visit"><%= link_to "Visit #{@tool.name} →", @tool.website_url, target: "_blank", rel: "noopener", class: "visit-btn",

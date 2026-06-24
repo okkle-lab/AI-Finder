@@ -344,9 +344,25 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".detail-band-score .dbs-num", /8\.1/
+    assert_select ".detail-band-score .dbs-num[style='color: var(--brand)']", /8\.1/
     assert_select ".detail-band-score .dbs-cap", "Overall"
     assert_operator response.body.index("cat-bars-shell"), :<, response.body.index("value-metrics")
     assert_operator response.body.index("value-metrics"), :<, response.body.index('aria-label="Efficiency"')
+    assert_operator response.body.index("cat-breakdown-foot"), :<, response.body.index("Models &amp; pricing")
+    assert_operator response.body.index("Models &amp; pricing"), :<, response.body.index("Availability &amp; data")
+    assert_operator response.body.index("Availability &amp; data"), :<, response.body.index("The full specs")
+    assert_select ".performance-bar-fill.cat-bar-fill[data-score-bars-target='fill'][data-score-bars-key='coding'][data-score-bars-width='80']"
+    assert_select ".performance-bar-fill[style*='background']", false
+    assert_select ".performance-bar-score[style]", false
+    assert_select ".performance-bar-score", "8"
+    assert_select ".models-block .specs-title", "Models & pricing"
+    assert_select ".models-block .models-name", "Fast Model"
+    assert_select ".models-block td", "$1 in / $3 out"
+    assert_select ".facts-block .specs-title", "Availability & data"
+    assert_select ".facts-block dt", "API"
+    assert_select ".specs-block .specs-title", "The full specs"
+    assert_select ".specs dt", "Price"
+    assert_select ".specs dd", /\$20/
     assert_select ".value-metrics"
     assert_select ".value-metrics[aria-label='Value']"
     assert_select ".value-metrics-title", "Value"

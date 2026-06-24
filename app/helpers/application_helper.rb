@@ -414,15 +414,13 @@ module ApplicationHelper
       .first(limit)
   end
 
-  # A drafted editorial "Our take" — a richer multi-paragraph commentary
-  # generated from the tool's verdict data. Sample copy — replace with
-  # hand-written commentary per tool later.
+  # A short product-page take generated from verdict data. Keep this concise:
+  # the page already shows the score and detailed breakdown nearby.
   def tool_verdict_commentary(tool)
     v = tool.overall_verdict
-    return ["We haven't finished testing #{tool.name} yet — scores and our full take are on the way."] if v.nil?
+    return ["We haven't finished testing #{tool.name} yet, so our take is still on the way."] if v.nil?
 
     breakdown = tool_category_breakdown(tool)
-    top = breakdown.first
     bottom = breakdown.size > 1 ? breakdown.last : nil
 
     tier =
@@ -435,22 +433,12 @@ module ApplicationHelper
     best = tool.verdict_best_for.map(&:downcase)
     weak = tool.verdict_not_ideal_for.map(&:downcase)
 
-    # Paragraph 1 — the headline judgement.
-    p1 = ["At #{score_number(v)}/10 overall, #{tool.name} is #{tier}."]
-    if top
-      p1 << "Its standout is #{top[:name].downcase} (#{score_number(top[:score])}/10), and it earns its place on #{best.to_sentence}, where our cross-judged tests rate it well." if best.any?
-    end
+    tradeoffs = weak.presence || (bottom && bottom[:score] < 7 ? [bottom[:name].downcase] : [])
+    sentence = +"#{tool.name} is #{tier}"
+    sentence << " for #{best.to_sentence}" if best.any?
+    sentence << ", with #{tradeoffs.to_sentence} as the main #{'trade-off'.pluralize(tradeoffs.size)}" if tradeoffs.any?
 
-    # Paragraph 2 — the honest trade-offs and who it suits.
-    p2 = []
-    if bottom && bottom[:score] < 7
-      p2 << "Where it slips is #{bottom[:name].downcase} (#{score_number(bottom[:score])}/10)."
-    end
-    p2 << "The trade-off is #{weak.to_sentence} — go in expecting that." if weak.any?
-    p2 << (tool.verdict_free_tier? ? "A usable free tier lowers the risk of trying it for yourself." : "There's no real free tier, so you're committing budget to find out if it fits.")
-    p2 << "It's the kind of tool we'd reach for when #{best.first} matters more than breadth." if best.any?
-
-    [p1.join(" "), p2.join(" ")].reject(&:blank?)
+    ["#{sentence}."]
   end
 
   # Weighted category score for a single ModelVariant (mirrors Tool#comparison_category_score
