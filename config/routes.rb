@@ -8,6 +8,8 @@ Rails.application.routes.draw do
   get "search", to: "search#index"
   get "compare", to: "comparisons#show"
   get "methodology", to: "pages#methodology"
+  get "support", to: "pages#support"
+  get "privacy", to: "pages#privacy"
   get "learn", to: "pages#learn"
   get "learn/:slug", to: "pages#learn_topic", as: :learn_topic
   get "leaderboards", to: "leaderboards#index"

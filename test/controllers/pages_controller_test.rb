@@ -19,6 +19,24 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".header-search-button[aria-label='Search AI tools']"
   end
 
+  test "support page is available for app store review" do
+    get support_path
+
+    assert_response :success
+    assert_select "h1", "Okkle Support"
+    assert_select "a[href='mailto:admin@okklelab.com']", "admin@okklelab.com"
+    assert_select "h3", "How do I delete my data?"
+  end
+
+  test "privacy page is available for app store review" do
+    get privacy_path
+
+    assert_response :success
+    assert_select "h1", "Okkle Privacy Policy"
+    assert_select "p", /Last updated: June 29, 2026/
+    assert_select "a[href='mailto:admin@okklelab.com']", "admin@okklelab.com"
+  end
+
   test "home hides latest in ai nav and section when flag is disabled" do
     original = Rails.configuration.x.features.latest_in_ai
     Rails.configuration.x.features.latest_in_ai = false

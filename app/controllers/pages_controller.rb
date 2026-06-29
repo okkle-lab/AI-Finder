@@ -25,6 +25,12 @@ class PagesController < ApplicationController
     @categories = Rubric.categories
   end
 
+  def support
+  end
+
+  def privacy
+  end
+
   def learn
     @topics = LearnTopic.all
   end

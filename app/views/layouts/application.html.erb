@@ -56,6 +56,11 @@
     </main>
     <footer class="site-footer">
       A small, honest catalogue. Prices and privacy facts change — always double-check on the tool's own site.
+      <span class="site-footer-links">
+        <%= link_to "Okkle support", support_path %>
+        <span aria-hidden="true">·</span>
+        <%= link_to "Privacy policy", privacy_path %>
+      </span>
       <span class="site-version">Okkle Find v<%= AiFinder::VERSION %></span>
     </footer>
   </body>
